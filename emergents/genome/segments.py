@@ -9,6 +9,13 @@ class PromoterDirection(Enum):
     FORWARD = auto()
     REVERSE = auto()
 
+    def switch(self) -> PromoterDirection:
+        return (
+            PromoterDirection.FORWARD
+            if self == PromoterDirection.REVERSE
+            else PromoterDirection.REVERSE
+        )
+
 
 @dataclass
 class Segment:

@@ -8,6 +8,7 @@ from emergents.genome.segments import (
     Segment,
 )
 from emergents.mutations.duplication import Duplication
+from emergents.mutations.inversion import Inversion
 from emergents.mutations.point_mutation import PointMutation
 from emergents.mutations.small_deletion import SmallDeletion
 from emergents.mutations.small_insertion import SmallInsertion
@@ -83,6 +84,23 @@ def main():
     )
 
     valid_duplication.apply(genome)
+    logger.info(genome)
+    logger.info("Coalescing")
+    genome.coalesce_all()
+    logger.info(genome)
+
+    # Test Inversion
+    invalid_inversion = Inversion(111, 597)
+    valid_inversion = Inversion(50, 310)
+
+    logger.info(
+        f"{invalid_inversion.describe()} is neutral? {invalid_inversion.is_neutral(genome)}"
+    )
+    logger.info(
+        f"{valid_inversion.describe()} is neutral? {valid_inversion.is_neutral(genome)}"
+    )
+
+    valid_inversion.apply(genome)
     logger.info(genome)
     logger.info("Coalescing")
     genome.coalesce_all()

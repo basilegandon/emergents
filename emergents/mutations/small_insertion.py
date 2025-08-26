@@ -1,5 +1,6 @@
 from typing import Optional
 
+from emergents.genome.coordinates import CoordinateSystem
 from emergents.genome.genome import Genome
 from emergents.genome.segments import NonCodingSegment
 from emergents.mutations.base import Mutation
@@ -17,14 +18,16 @@ class SmallInsertion(Mutation):
         if self.position == genome.length:
             # Only possible when genome is not circular.
             return True
-        segment, offset, *_ = genome[self.position]
+        segment, offset, *_ = genome.find_segment_at_position(
+            self.position, CoordinateSystem.GAP
+        )
         return (
             segment.is_noncoding() or offset == 0
         )  # If inserting at the start of a segment, it's neutral.
 
     def apply(self, genome: Genome):
         """Apply the insertion to the genome."""
-        genome.insert_at(self.position, NonCodingSegment(self.length))
+        genome.insert_at_gap(self.position, NonCodingSegment(self.length))
 
     def describe(self) -> str:
         return f"SmallInsertion(position={self.position}, length={self.length})"

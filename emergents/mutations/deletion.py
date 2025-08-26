@@ -1,5 +1,6 @@
 from typing import Optional
 
+from emergents.genome.coordinates import CoordinateSystem
 from emergents.genome.genome import Genome
 from emergents.mutations.base import Mutation
 
@@ -29,10 +30,14 @@ class Deletion(Mutation):
         self, genome: Genome, start_pos: int, end_pos: int
     ) -> bool:
         """Check if the deleted segment is neutral (i.e., does not affect the organism's fitness)"""
-        segment_at_start, *_ = genome[start_pos]
+        segment_at_start, *_ = genome.find_segment_at_position(
+            start_pos, CoordinateSystem.BASE
+        )
         if not segment_at_start.is_noncoding():
             return False
-        segment_at_end, *_ = genome[end_pos]
+        segment_at_end, *_ = genome.find_segment_at_position(
+            end_pos, CoordinateSystem.GAP
+        )
         if segment_at_start.sid is segment_at_end.sid:
             return True
         return False

@@ -1,5 +1,6 @@
 from typing import Iterator, Optional
 
+from emergents.genome.coordinates import CoordinateSystem, DefaultCoordinateValidator
 from emergents.genome.node import Node, merge, split_by_pos, update_subtree_len
 from emergents.genome.segments import NonCodingSegment, Segment
 
@@ -7,15 +8,22 @@ SegmentLike = Segment | list[Segment]
 
 
 class Genome:
-    """Genome stored as an implicit treap of Segment nodes.
-    Public API provides coordinate-based insertions, deletions, lookups and coalescing.
+    """
+    Genome stored as an implicit treap of Segment nodes.
+
+    Coordinate Systems:
+    - BASE: Points to actual bases (0-indexed). Range: [0, length)
+    - GAP: Points between bases (0-indexed). Range: [0, length] if genome is linear else [0, length)
+
+    All range operations use base coordinates with half-open intervals [start, end).
     """
 
     def __init__(
         self, segments: Optional[list[Segment]] = None, circular: bool = False
     ):
-        self.root: Optional[Node] = None
         self.circular: bool = circular
+        self._validator = DefaultCoordinateValidator()
+        self.root: Optional[Node] = None
         if segments:
             for seg in segments:
                 if seg.length <= 0:
@@ -26,17 +34,45 @@ class Genome:
     def length(self) -> int:
         return self.root.sub_len if self.root else 0
 
-    def _validate_coord(self, pos: int, allow_end: bool = True):
-        if pos < 0 or (pos > self.length if allow_end else pos >= self.length):
-            raise IndexError(
-                f"position {pos} out of bounds (0..{self.length}{' inclusive' if allow_end else ''})"
-            )
+    def _validate_coord(self, pos: int, coord_sys: CoordinateSystem) -> None:
+        """Validate coordinate based on system type."""
+        self._validator.validate_position(pos, self.length, coord_sys)
 
-    def find_by_coord(self, pos: int) -> tuple[Segment, int, int, int]:
-        """Return (segment, offset_inside_segment, seg_start, seg_end) for given 0-based pos.
-        Complexity: O(log n).
+    def _handle_if_last_position(self) -> tuple[Segment, int, int, int]:
+        """Handle special case where position is at the end of the genome."""
+        if self.root is None:
+            raise IndexError("Cannot access position in empty genome")
+
+        current_node: Node = self.root
+        while current_node.right:
+            current_node = current_node.right
+        seg_start = self.length - current_node.segment.length
+        return (
+            current_node.segment,
+            current_node.segment.length,
+            seg_start,
+            self.length,
+        )
+
+    def find_segment_at_position(
+        self, pos: int, coord_sys: CoordinateSystem
+    ) -> tuple[Segment, int, int, int]:
         """
-        self._validate_coord(pos, allow_end=False)
+        Find segment containing the base at position pos.
+
+        Args:
+            pos: Base coordinate (0 = first base)
+
+        Returns:
+            tuple: (segment, offset_within_segment, segment_start, segment_end)
+        """
+        self._validate_coord(pos, coord_sys)
+
+        if pos == self.length:
+            # Special case: position is at the end of the genome
+            # We only get here if pos is valid <-> if genome is linear and coordinates are in GAP
+            return self._handle_if_last_position()
+
         current_node = self.root
         prefix = 0
         while current_node:
@@ -53,36 +89,55 @@ class Genome:
                 return current_node.segment, offset, seg_start, seg_end
         raise IndexError("position out of range (internal mismatch)")
 
-    def __getitem__(self, pos: int) -> tuple[Segment, int, int, int]:
-        """Return (segment, offset_inside_segment, seg_start, seg_end) for given 0-based pos.
-        Complexity: O(log n).
-        """
-        segment, offset, seg_start, seg_end = self.find_by_coord(pos)
-        return segment, offset, seg_start, seg_end
-
-    def insert_at(self, pos: int, segments: SegmentLike):
+    def insert_at_gap(self, pos: int, segment: Segment):
         """Insert a segment or list of segments at genome coordinate `pos` (0..length inclusive)."""
-        self._validate_coord(pos, allow_end=True)
-        if isinstance(segments, Segment):
-            segments = [segments]
+        # Insertion is always in GAP coordinates
+        self._validate_coord(pos, CoordinateSystem.GAP)
+
         # ensure lengths positive
-        for segment in segments:
-            if segment.length <= 0:
-                raise ValueError("Inserted segments must have positive length")
+        if segment.length <= 0:
+            raise ValueError(
+                f"Inserted segments must have positive length, got {segment.length}"
+            )
+
         left, right = split_by_pos(self.root, pos)
-        mid = None
-        for segment in segments:
-            mid = merge(mid, Node(segment))
+        mid = merge(None, Node(segment))
+        assert mid is not None  # as mid is created from a valid segment
+        # Check if previous or following segment is non-coding and make it one non coding segment
+        if left:
+            rightmost = left
+            while rightmost.right:
+                rightmost = rightmost.right
+            if isinstance(rightmost.segment, NonCodingSegment):
+                merged_segment = rightmost.segment.clone_with_length(
+                    rightmost.segment.length + segment.length
+                )
+                # remove rightmost
+                left = split_by_pos(left, pos - rightmost.segment.length)[0]
+                mid = Node(merged_segment)
+        if right:
+            leftmost = right
+            while leftmost.left:
+                leftmost = leftmost.left
+            if isinstance(leftmost.segment, NonCodingSegment):
+                merged_segment = leftmost.segment.clone_with_length(
+                    mid.segment.length + leftmost.segment.length
+                )
+                # remove leftmost
+                right = split_by_pos(right, leftmost.segment.length)[1]
+                mid = Node(merged_segment)
         self.root = merge(merge(left, mid), right)
 
     def delete_range(self, start: int, end: int):
         """Delete bases in interval [start, end). Does nothing if start == end."""
-        if start == end:
-            return
-        self._validate_coord(start, allow_end=True)
-        self._validate_coord(end, allow_end=True)
+        # Deletion start is always in BASE coordinates
+        self._validate_coord(start, CoordinateSystem.BASE)
+        # Deletion end is always in GAP coordinates, so that last base can be deleted
+        self._validate_coord(end, CoordinateSystem.GAP)
+
         if start >= end:
-            raise ValueError("start must be < end")
+            raise ValueError(f"start must be < end, got {start} >= {end}")
+
         left, right = split_by_pos(self.root, start)
         _, right = split_by_pos(right, end - start)
         # discard middle
@@ -91,11 +146,13 @@ class Genome:
     def extend_segment_at(self, pos: int, delta: int):
         """Extend (or shrink if delta negative) the noncoding segment that contains pos.
         If pos falls inside coding segment, raises an error.
-        If delta causes length <=0, the segment is removed.
         Complexity: O(log n).
         """
-        self._validate_coord(pos, allow_end=False)
-        seg, _, seg_start, _ = self.find_by_coord(pos)
+        if delta < 0:
+            raise ValueError(f"delta must be positive, got {delta}")
+        self._validate_coord(pos, CoordinateSystem.GAP)
+
+        seg, _, seg_start, _ = self.find_segment_at_position(pos, CoordinateSystem.GAP)
         if not seg.is_noncoding():
             raise TypeError("extend_segment_at only allowed on non-coding segments")
         # isolate the segment as a middle tree
@@ -110,13 +167,9 @@ class Genome:
         root_node = mid  # expected single node
         # mutate length
         new_len = root_node.segment.length + delta
-        if new_len <= 0:
-            # remove this segment entirely: merge left and right
-            self.root = merge(left, right)
-        else:
-            root_node.segment = root_node.segment.clone_with_length(new_len)
-            update_subtree_len(root_node)
-            self.root = merge(merge(left, root_node), right)
+        root_node.segment = root_node.segment.clone_with_length(new_len)
+        update_subtree_len(root_node)
+        self.root = merge(merge(left, root_node), right)
 
     def coalesce_all(self):
         """Coalesce adjacent non-coding segments by flattening and rebuilding the tree.
@@ -126,6 +179,7 @@ class Genome:
         if not segments_info:
             self.root = None
             return
+
         merged: list[Segment] = []
         for segment, _, _ in segments_info:
             if (
@@ -139,6 +193,7 @@ class Genome:
                 )
             else:
                 merged.append(segment)
+
         # rebuild tree
         root = None
         for s in merged:

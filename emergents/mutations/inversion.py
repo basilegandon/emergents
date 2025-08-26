@@ -1,5 +1,6 @@
 from typing import Optional
 
+from emergents.genome.coordinates import CoordinateSystem
 from emergents.genome.genome import Genome
 from emergents.genome.node import Node, merge, split_by_pos, update_subtree_len
 from emergents.genome.segments import CodingSegment, Segment
@@ -31,28 +32,22 @@ class Inversion(Mutation):
                 "Non-circular genome: duplication start must be < end (no wrap allowed)"
             )
 
-    def _is_deleted_seg_neutral(
-        self, genome: Genome, start_pos: int, end_pos: int
-    ) -> bool:
-        """Check if the deleted segment is neutral (i.e., does not affect the organism's fitness)"""
-        segment_at_start, *_ = genome[start_pos]
-        if not segment_at_start.is_noncoding():
-            return False
-        segment_at_end, *_ = genome[end_pos]
-        if segment_at_start.sid is segment_at_end.sid:
-            return True
-        return False
-
     def is_neutral(self, genome: Genome) -> bool:
-        """Check if the inversion is neutral (i.e., does not affect the organism's fitness)"""
-        if self.start_pos != genome.length:
-            segment, offset, *_ = genome[self.start_pos]
-            if not segment.is_noncoding() and offset != 0:
-                return False
-        if self.end_pos != genome.length:
-            segment, offset, *_ = genome[self.end_pos]
-            if not segment.is_noncoding() and offset != 0:
-                return False
+        """Check if the deleted segment is neutral (i.e., does not affect the organism's fitness)"""
+        segment_at_start, offset, *_ = genome.find_segment_at_position(
+            self.start_pos, CoordinateSystem.GAP
+        )
+        if not segment_at_start.is_noncoding() and offset != 0:
+            return False
+        segment_at_end, offset, *_ = genome.find_segment_at_position(
+            self.end_pos, CoordinateSystem.GAP
+        )
+        if (
+            not segment_at_end.is_noncoding()
+            and offset != 0
+            and self.end_pos != genome.length
+        ):
+            return False
         return True
 
     def apply(self, genome: Genome):
@@ -79,12 +74,35 @@ class Inversion(Mutation):
                 seg.promoter_direction = seg.promoter_direction.switch()
             inverted_segments.append(seg)
 
+        # Merge back together
+        if left:
+            rightmost = left
+            while rightmost.right:
+                rightmost = rightmost.right
+            if rightmost.segment.is_noncoding() and inverted_segments[0].is_noncoding():
+                merged_segment = rightmost.segment.clone_with_length(
+                    rightmost.segment.length + inverted_segments[0].length
+                )
+                inverted_segments = inverted_segments[1:]
+                left = split_by_pos(left, self.start_pos - rightmost.segment.length)[0]
+                left = merge(left, Node(merged_segment))
+        if right:
+            leftmost = right
+            while leftmost.left:
+                leftmost = leftmost.left
+            if leftmost.segment.is_noncoding() and inverted_segments[-1].is_noncoding():
+                merged_segment = leftmost.segment.clone_with_length(
+                    inverted_segments[-1].length + leftmost.segment.length
+                )
+                inverted_segments = inverted_segments[:-1]
+                right = split_by_pos(right, leftmost.segment.length)[1]
+                right = merge(right, Node(merged_segment))
+
         # Rebuild subtree from inverted list
         new_mid = None
         for seg in inverted_segments:
             new_mid = merge(new_mid, Node(seg))
 
-        # Merge back together
         genome.root = merge(merge(left, new_mid), right)
         update_subtree_len(genome.root)
 

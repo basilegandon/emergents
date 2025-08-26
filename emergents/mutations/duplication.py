@@ -1,5 +1,6 @@
 from typing import Optional
 
+from emergents.genome.coordinates import CoordinateSystem
 from emergents.genome.genome import Genome
 from emergents.genome.segments import CodingSegment, NonCodingSegment, PromoterDirection
 from emergents.mutations.base import Mutation
@@ -80,11 +81,14 @@ class Duplication(Mutation):
           end-of-segment for reverse coding segments), it's invalid.
         - NonCoding segments are ignored.
         """
-        if self.insertion_pos == genome.length:
-            # Only possible when genome is not circular.
-            return True
-        segment, offset, *_ = genome[self.insertion_pos]
-        if not segment.is_noncoding() and offset != 0:
+        segment, offset, *_ = genome.find_segment_at_position(
+            self.insertion_pos, CoordinateSystem.GAP
+        )
+        if (
+            not segment.is_noncoding()
+            and offset != 0
+            and self.insertion_pos != genome.length
+        ):
             # If inserting other place than at the start of a segment, it's neutral.
             return False
 
@@ -102,7 +106,9 @@ class Duplication(Mutation):
 
     def apply(self, genome: Genome):
         """Apply the insertion to the genome."""
-        genome.insert_at(self.insertion_pos, NonCodingSegment(self.get_length(genome)))
+        genome.insert_at_gap(
+            self.insertion_pos, NonCodingSegment(self.get_length(genome))
+        )
 
     def describe(self, genome: Optional[Genome] = None) -> str:
         return f"Duplication(duplicated segment start={self.start_pos}, duplicated segment end={self.end_pos}, length={self.get_length(genome)})"

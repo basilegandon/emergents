@@ -15,6 +15,9 @@ class Duplication(Mutation):
         rng_state: Optional[int] = None,
     ):
         super().__init__(rng_state)
+        if start_pos < 0 or end_pos < 0 or insertion_pos < 0:
+            raise ValueError("Positions must be non-negative")
+
         self.start_pos: int = start_pos
         self.end_pos: int = end_pos
         self.insertion_pos: int = insertion_pos
@@ -52,15 +55,15 @@ class Duplication(Mutation):
     ) -> bool:
         # iterate through segments in order until we've passed the last relevant end
         for seg, seg_start, seg_end in genome.iter_segments():
-            # compute overlap between this segment and the current interval
-            overlap_start = max(seg_start, start_pos)
-            overlap_end = min(seg_end, end_pos)
-            if overlap_start >= overlap_end:
-                continue  # no overlap
-
             # ignore noncoding
             if not isinstance(seg, CodingSegment):
                 continue
+
+            # compute overlap between this segment and the current interval
+            overlap_start = max(seg_start, start_pos)
+            overlap_end = min(seg_end, end_pos)
+            if overlap_start > overlap_end:
+                continue  # no overlap
 
             # For a forward coding segment: a promoter at the start (offset 0) is copied iff the duplication includes seg_start
             # For a reverse coding segment: a promoter at the end (offset seg.length-1) is copied iff duplication includes seg_end
@@ -81,6 +84,8 @@ class Duplication(Mutation):
           end-of-segment for reverse coding segments), it's invalid.
         - NonCoding segments are ignored.
         """
+        if genome.length < self.end_pos:
+            raise IndexError("Genome is shorter than duplication end position")
         segment, offset, *_ = genome.find_segment_at_position(
             self.insertion_pos, CoordinateSystem.GAP
         )

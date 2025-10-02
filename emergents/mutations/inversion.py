@@ -10,6 +10,10 @@ from emergents.mutations.base import Mutation
 class Inversion(Mutation):
     def __init__(self, start_pos: int, end_pos: int, rng_state: Optional[int] = None):
         super().__init__(rng_state)
+        if start_pos < 0 or end_pos < 0:
+            raise ValueError("Inversion positions must be non-negative")
+        if start_pos == end_pos:
+            raise ValueError("Inversion start and end positions cannot be the same")
         self.reverted: bool = False
         if start_pos > end_pos:
             start_pos, end_pos = end_pos, start_pos
@@ -74,6 +78,8 @@ class Inversion(Mutation):
                 seg.promoter_direction = seg.promoter_direction.switch()
             inverted_segments.append(seg)
 
+        print("Inverted segments:", inverted_segments)
+
         # Merge back together
         if left:
             rightmost = left
@@ -86,7 +92,8 @@ class Inversion(Mutation):
                 inverted_segments = inverted_segments[1:]
                 left = split_by_pos(left, self.start_pos - rightmost.segment.length)[0]
                 left = merge(left, Node(merged_segment))
-        if right:
+
+        if inverted_segments and right:
             leftmost = right
             while leftmost.left:
                 leftmost = leftmost.left

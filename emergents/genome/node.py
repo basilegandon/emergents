@@ -57,6 +57,8 @@ def split_by_pos(
     """
     if root is None:
         return None, None
+    if pos < 0 or pos > root.sub_len:
+        raise IndexError(f"Position {pos} out of bounds [0, {root.sub_len}]")
     left_sub: int = root.left.sub_len if root.left else 0
     seg_len: int = root.segment.length
 

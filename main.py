@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def main():
     segments: list[Segment] = [
-        NonCodingSegment(100),
+        NonCodingSegment(10),
         CodingSegment(200, promoter_direction=PromoterDirection.FORWARD),
         NonCodingSegment(50),
         CodingSegment(100, promoter_direction=PromoterDirection.FORWARD),
@@ -31,67 +31,61 @@ def main():
     genome = Genome(segments)
     logger.info(genome)
 
-    invalid_point_mutation = PointMutation(position=100)
-    valid_point_mutation = PointMutation(position=99)
+    # invalid_point_mutation = PointMutation(position=100)
+    # valid_point_mutation = PointMutation(position=799)
 
-    logger.info(
-        f"{invalid_point_mutation.describe()} is neutral? {invalid_point_mutation.is_neutral(genome)}"
-    )
-    logger.info(
-        f"{valid_point_mutation.describe()} is neutral? {valid_point_mutation.is_neutral(genome)}"
-    )
+    # logger.info(
+    #     f"{invalid_point_mutation.describe()} is neutral? {invalid_point_mutation.is_neutral(genome)}"
+    # )
+    # logger.info(
+    #     f"{valid_point_mutation.describe()} is neutral? {valid_point_mutation.is_neutral(genome)}"
+    # )
 
-    invalid_small_insertion = SmallInsertion(position=101, length=10)
-    valid_small_insertion = SmallInsertion(position=100, length=10)
+    # invalid_small_insertion = SmallInsertion(position=101, length=10)
+    # valid_small_insertion = SmallInsertion(position=800, length=10)
 
-    logger.info(
-        f"{invalid_small_insertion.describe()} is neutral? {invalid_small_insertion.is_neutral(genome)}"
-    )
-    logger.info(
-        f"{valid_small_insertion.describe()} is neutral? {valid_small_insertion.is_neutral(genome)}"
-    )
+    # logger.info(
+    #     f"{invalid_small_insertion.describe()} is neutral? {invalid_small_insertion.is_neutral(genome)}"
+    # )
+    # logger.info(
+    #     f"{valid_small_insertion.describe()} is neutral? {valid_small_insertion.is_neutral(genome)}"
+    # )
 
-    valid_small_insertion.apply(genome)
-    logger.info(genome)
-    logger.info("Coalescing")
-    genome.coalesce_all()
-    logger.info(genome)
+    # valid_small_insertion.apply(genome)
+    # logger.info(genome)
 
-    # Test small deletion
-    invalid_small_deletion = SmallDeletion(position=351, length=10)
-    valid_small_deletion = SmallDeletion(position=350, length=10)
+    # # Test small deletion
 
-    logger.info(
-        f"{invalid_small_deletion.describe()} is neutral? {invalid_small_deletion.is_neutral(genome)}"
-    )
-    logger.info(
-        f"{valid_small_deletion.describe()} is neutral? {valid_small_deletion.is_neutral(genome)}"
-    )
+    # invalid_small_deletion = SmallDeletion(position=1, length=10)
+    # valid_small_deletion = SmallDeletion(position=0, length=10)
 
-    valid_small_deletion.apply(genome)
-    logger.info(genome)
-    genome.coalesce_all()
+    # logger.info(
+    #     f"{invalid_small_deletion.describe()} is neutral? {invalid_small_deletion.is_neutral(genome)}"
+    # )
+    # logger.info(
+    #     f"{valid_small_deletion.describe()} is neutral? {valid_small_deletion.is_neutral(genome)}"
+    # )
 
-    # Test duplication
-    invalid_duplication = Duplication(351, 598, 309)
-    valid_duplication = Duplication(351, 598, 310)
+    # valid_small_deletion.apply(genome)
+    # logger.info(genome)
 
-    logger.info(
-        f"{invalid_duplication.describe(genome)} is neutral? {invalid_duplication.is_neutral(genome)}"
-    )
-    logger.info(
-        f"{valid_duplication.describe(genome)} is neutral? {valid_duplication.is_neutral(genome)}"
-    )
+    # # Test duplication
+    # invalid_duplication = Duplication(0, 10, 309)
+    # valid_duplication = Duplication(261, 508, 220)
 
-    valid_duplication.apply(genome)
-    logger.info(genome)
-    logger.info("Coalescing")
-    genome.coalesce_all()
-    logger.info(genome)
+    # logger.info(
+    #     f"{invalid_duplication.describe(genome)} is neutral? {invalid_duplication.is_neutral(genome)}"
+    # )
+    # logger.info(
+    #     f"{valid_duplication.describe(genome)} is neutral? {valid_duplication.is_neutral(genome)}"
+    # )
+
+    # valid_duplication.apply(genome)
+    # logger.info(genome)
 
     # Test Inversion
-    invalid_inversion = Inversion(111, 597)
-    valid_inversion = Inversion(50, 310)
+    invalid_inversion = Inversion(5, 209)
+    valid_inversion = Inversion(220, 620)
 
     logger.info(
         f"{invalid_inversion.describe()} is neutral? {invalid_inversion.is_neutral(genome)}"
@@ -101,9 +95,6 @@ def main():
     )
 
     valid_inversion.apply(genome)
-    logger.info(genome)
-    logger.info("Coalescing")
-    genome.coalesce_all()
     logger.info(genome)
 
 

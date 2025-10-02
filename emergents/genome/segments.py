@@ -22,6 +22,10 @@ class Segment:
     length: int
     sid: uuid.UUID = field(default_factory=lambda: uuid.uuid4())
 
+    def __post_init__(self):
+        if self.length <= 0:
+            raise ValueError("Segment length must be positive.")
+
     def clone_with_length(self, new_length: int) -> "Segment":
         """Return a new Segment of the same type but with new length and a new id."""
         raise NotImplementedError
@@ -36,6 +40,8 @@ class Segment:
 @dataclass
 class NonCodingSegment(Segment):
     def clone_with_length(self, new_length: int) -> "NonCodingSegment":
+        if new_length <= 0:
+            raise ValueError("NonCodingSegment length must be positive.")
         return NonCodingSegment(length=new_length)
 
     def __repr__(self) -> str:
@@ -47,6 +53,8 @@ class CodingSegment(Segment):
     promoter_direction: PromoterDirection = PromoterDirection.FORWARD
 
     def clone_with_length(self, new_length: int) -> "CodingSegment":
+        if new_length <= 0:
+            raise ValueError("CodingSegment length must be positive.")
         return CodingSegment(
             length=new_length, promoter_direction=self.promoter_direction
         )

@@ -9,6 +9,10 @@ from emergents.mutations.base import Mutation
 class SmallInsertion(Mutation):
     def __init__(self, position: int, length: int, rng_state: Optional[int] = None):
         super().__init__(rng_state)
+        if position < 0:
+            raise ValueError("Position must be non-negative")
+        if length <= 0:
+            raise ValueError("Length must be positive")
         self.position = position
         self.length = length
 

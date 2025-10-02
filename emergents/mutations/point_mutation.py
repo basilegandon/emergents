@@ -11,6 +11,8 @@ class PointMutation(Mutation):
         base (i.e., a base outside a coding sequence), the mutation is neutral.
         """
         super().__init__(rng_state)
+        if position < 0:
+            raise ValueError("Position must be non-negative")
         self.position = position
 
     def is_neutral(self, genome: Genome) -> bool:

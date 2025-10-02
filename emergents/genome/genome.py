@@ -30,6 +30,12 @@ class Genome:
                     raise ValueError("Segments must have positive length")
                 self.root = merge(self.root, Node(seg))
 
+    def __len__(self) -> int:
+        return self.length
+
+    def __bool__(self) -> bool:
+        return self.length > 0
+
     @property
     def length(self) -> int:
         return self.root.sub_len if self.root else 0
@@ -135,8 +141,12 @@ class Genome:
         # Deletion end is always in GAP coordinates, so that last base can be deleted
         self._validate_coord(end, CoordinateSystem.GAP)
 
-        if start >= end:
-            raise ValueError(f"start must be < end, got {start} >= {end}")
+        if start > end:
+            if self.circular:
+                self.delete_range(start, self.length)
+                start = 0
+            else:
+                raise ValueError(f"start must be < end, got {start} >= {end}")
 
         left, right = split_by_pos(self.root, start)
         _, right = split_by_pos(right, end - start)
@@ -144,8 +154,9 @@ class Genome:
         self.root = merge(left, right)
 
     def extend_segment_at(self, pos: int, delta: int):
-        """Extend (or shrink if delta negative) the noncoding segment that contains pos.
+        """Extend the noncoding segment that contains pos.
         If pos falls inside coding segment, raises an error.
+        If delta is negative, raises an error.
         Complexity: O(log n).
         """
         if delta < 0:

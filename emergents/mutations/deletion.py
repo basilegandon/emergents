@@ -17,14 +17,15 @@ class Deletion(Mutation):
         """
         if self.start_pos > self.end_pos:
             # Only possible if genome.circular
-            # allow wrap-around duplication
-            return [(self.start_pos, genome.length), (0, self.end_pos)]
-        if self.start_pos <= self.end_pos:
-            return [(self.start_pos, self.end_pos)]
+            # allow wrap-around deletion
+            if genome.circular:
+                return [(self.start_pos, genome.length - 1), (0, self.end_pos)]
+            else:
+                raise ValueError(
+                    "Non-circular genome: deletion start must be < end (no wrap allowed)"
+                )
         else:
-            raise ValueError(
-                "Non-circular genome: duplication start must be < end (no wrap allowed)"
-            )
+            return [(self.start_pos, self.end_pos)]
 
     def _is_deleted_seg_neutral(
         self, genome: Genome, start_pos: int, end_pos: int
@@ -36,7 +37,7 @@ class Deletion(Mutation):
         if not segment_at_start.is_noncoding():
             return False
         segment_at_end, *_ = genome.find_segment_at_position(
-            end_pos, CoordinateSystem.GAP
+            end_pos, CoordinateSystem.BASE
         )
         if segment_at_start.sid is segment_at_end.sid:
             return True

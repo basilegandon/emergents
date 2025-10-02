@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Protocol, runtime_checkable
 
 
 class CoordinateSystem(Enum):
@@ -7,21 +6,6 @@ class CoordinateSystem(Enum):
 
     BASE = "base"  # Points to actual bases: 0 = first base, valid range [0, length)
     GAP = "gap"  # Points between bases: 0 = before first base, valid range [0, length] if genome is linear else [0, length)
-
-
-@runtime_checkable
-class CoordinateValidator(Protocol):
-    """Protocol for coordinate validation."""
-
-    def validate_position(
-        self, pos: int, genome_length: int, coord_sys: CoordinateSystem
-    ) -> None:
-        """Validate a single position."""
-        ...
-
-    def validate_base_range(self, start: int, end: int, genome_length: int) -> None:
-        """Validate a range of base positions [start, end)."""
-        ...
 
 
 class DefaultCoordinateValidator:

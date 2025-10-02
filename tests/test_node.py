@@ -14,7 +14,7 @@ from emergents.genome.segments import CodingSegment, NonCodingSegment, PromoterD
 class TestNode:
     """Test Node class."""
 
-    def test_node_initialization(self):
+    def test_node_initialization(self) -> None:
         """Test Node initialization with segment."""
         segment = NonCodingSegment(length=100)
         node = Node(segment)
@@ -26,7 +26,7 @@ class TestNode:
         assert isinstance(node.priority, int)
         assert 0 <= node.priority < (1 << 30)
 
-    def test_node_priority_randomness(self):
+    def test_node_priority_randomness(self) -> None:
         """Test that different nodes get different priorities (with high probability)."""
         segment = NonCodingSegment(length=10)
         nodes = [Node(segment) for _ in range(100)]
@@ -36,7 +36,7 @@ class TestNode:
         unique_priorities = set(priorities)
         assert len(unique_priorities) > 10  # Should have at least some variation
 
-    def test_node_with_different_segments(self):
+    def test_node_with_different_segments(self) -> None:
         """Test Node with different segment types."""
         noncoding = NonCodingSegment(length=75)
         coding = CodingSegment(length=125, promoter_direction=PromoterDirection.REVERSE)
@@ -49,7 +49,7 @@ class TestNode:
         assert noncoding_node.sub_len == 75
         assert coding_node.sub_len == 125
 
-    def test_node_slots(self):
+    def test_node_slots(self) -> None:
         """Test that Node uses __slots__ for memory efficiency."""
         segment = NonCodingSegment(length=10)
         node = Node(segment)
@@ -60,7 +60,7 @@ class TestNode:
         assert not hasattr(node, "__dict__")
 
     @patch("random.randrange")
-    def test_node_priority_deterministic(self, mock_randrange: Mock):
+    def test_node_priority_deterministic(self, mock_randrange: Mock) -> None:
         """Test node priority with mocked random for deterministic testing."""
         mock_randrange.return_value = 12345
 
@@ -74,12 +74,12 @@ class TestNode:
 class TestUpdateSubtreeLen:
     """Test update_subtree_len function."""
 
-    def test_update_subtree_len_none(self):
+    def test_update_subtree_len_none(self) -> None:
         """Test updating subtree length with None node."""
         # Should not raise exception
         update_subtree_len(None)
 
-    def test_update_subtree_len_leaf_node(self):
+    def test_update_subtree_len_leaf_node(self) -> None:
         """Test updating subtree length for leaf node."""
         segment = NonCodingSegment(length=50)
         node = Node(segment)
@@ -91,7 +91,7 @@ class TestUpdateSubtreeLen:
         update_subtree_len(node)
         assert node.sub_len == 50
 
-    def test_update_subtree_len_node_with_children(self):
+    def test_update_subtree_len_node_with_children(self) -> None:
         """Test updating subtree length for node with children."""
         # Create segments
         left_segment = NonCodingSegment(length=20)
@@ -113,7 +113,7 @@ class TestUpdateSubtreeLen:
         # Should be sum of all lengths
         assert root_node.sub_len == 20 + 30 + 40
 
-    def test_update_subtree_len_left_child_only(self):
+    def test_update_subtree_len_left_child_only(self) -> None:
         """Test updating subtree length with only left child."""
         left_segment = NonCodingSegment(length=15)
         root_segment = NonCodingSegment(length=25)
@@ -128,7 +128,7 @@ class TestUpdateSubtreeLen:
 
         assert root_node.sub_len == 15 + 25
 
-    def test_update_subtree_len_right_child_only(self):
+    def test_update_subtree_len_right_child_only(self) -> None:
         """Test updating subtree length with only right child."""
         root_segment = NonCodingSegment(length=35)
         right_segment = NonCodingSegment(length=45)
@@ -142,7 +142,7 @@ class TestUpdateSubtreeLen:
         update_subtree_len(root_node)
         assert root_node.sub_len == 35 + 45
 
-    def test_update_subtree_len_complex_tree(self):
+    def test_update_subtree_len_complex_tree(self) -> None:
         """Test updating subtree length in complex tree structure."""
         # Create tree:     root(10)
         #                 /        \
@@ -171,7 +171,7 @@ class TestUpdateSubtreeLen:
         assert right.sub_len == 8 + 4  # 12
         assert root.sub_len == 10 + 10 + 12  # 32
 
-    def test_update_subtree_len_with_zero_length_segments(self):
+    def test_update_subtree_len_with_zero_length_segments(self) -> None:
         """Test updating subtree length with zero-length segments."""
         normal_segment = NonCodingSegment(length=10)
 
@@ -188,12 +188,12 @@ class TestUpdateSubtreeLen:
 class TestMerge:
     """Test merge function."""
 
-    def test_merge_none_with_none(self):
+    def test_merge_none_with_none(self) -> None:
         """Test merging two None values."""
         result = merge(None, None)
         assert result is None
 
-    def test_merge_node_with_none(self):
+    def test_merge_node_with_none(self) -> None:
         """Test merging node with None."""
         segment = NonCodingSegment(length=20)
         node = Node(segment)
@@ -204,7 +204,7 @@ class TestMerge:
         assert result1 == node
         assert result2 == node
 
-    def test_merge_two_nodes_priority_order(self):
+    def test_merge_two_nodes_priority_order(self) -> None:
         """Test merging two nodes based on priority."""
         with patch("random.randrange") as mock_rand:
             # First node gets higher priority
@@ -226,7 +226,7 @@ class TestMerge:
             assert result.left == node1
             assert result.right is None
 
-    def test_merge_maintains_treap_property(self):
+    def test_merge_maintains_treap_property(self) -> None:
         """Test that merge maintains treap priority property."""
         with patch("random.randrange") as mock_rand:
             mock_rand.side_effect = [10, 20, 30]  # Decreasing priorities
@@ -252,7 +252,7 @@ class TestMerge:
 
             assert check_heap_property(result)
 
-    def test_merge_updates_subtree_lengths(self):
+    def test_merge_updates_subtree_lengths(self) -> None:
         """Test that merge correctly updates subtree lengths."""
         with patch("random.randrange") as mock_rand:
             mock_rand.side_effect = [100, 50]
@@ -271,7 +271,7 @@ class TestMerge:
             assert result.sub_len == 15 + 25
             assert result.sub_len == 40
 
-    def test_merge_complex_subtrees(self):
+    def test_merge_complex_subtrees(self) -> None:
         """Test merging complex subtrees."""
         with patch("random.randrange") as mock_rand:
             # Set up priorities to get predictable structure
@@ -302,7 +302,7 @@ class TestMerge:
             expected_total = 10 + 20 + 30 + 40
             assert final_result.sub_len == expected_total
 
-    def test_merge_preserves_order(self):
+    def test_merge_preserves_order(self) -> None:
         """Test that merge preserves left-to-right order of positions."""
         with patch("random.randrange") as mock_rand:
             mock_rand.side_effect = [50, 50]  # Same priority for simplicity
@@ -334,13 +334,13 @@ class TestMerge:
 class TestSplitByPos:
     """Test split_by_pos function."""
 
-    def test_split_by_pos_none(self):
+    def test_split_by_pos_none(self) -> None:
         """Test splitting None tree."""
         left, right = split_by_pos(None, 0)
         assert left is None
         assert right is None
 
-    def test_split_by_pos_single_node_before(self):
+    def test_split_by_pos_single_node_before(self) -> None:
         """Test splitting single node before it."""
         segment = NonCodingSegment(length=10)
         node = Node(segment)
@@ -352,7 +352,7 @@ class TestSplitByPos:
         assert right == node
         assert right.segment.length == 10
 
-    def test_split_by_pos_single_node_after(self):
+    def test_split_by_pos_single_node_after(self) -> None:
         """Test splitting single node after it."""
         segment = NonCodingSegment(length=10)
         node = Node(segment)
@@ -364,7 +364,7 @@ class TestSplitByPos:
         assert right is None
         assert left.segment.length == 10
 
-    def test_split_by_pos_single_node_middle(self):
+    def test_split_by_pos_single_node_middle(self) -> None:
         """Test splitting single node in the middle."""
         segment = NonCodingSegment(length=10)
         node = Node(segment)
@@ -378,7 +378,7 @@ class TestSplitByPos:
         assert left.segment.length == 3
         assert right.segment.length == 7
 
-    def test_split_by_pos_preserves_segment_type(self):
+    def test_split_by_pos_preserves_segment_type(self) -> None:
         """Test that splitting preserves segment types."""
         coding_segment = CodingSegment(
             length=20, promoter_direction=PromoterDirection.REVERSE
@@ -396,7 +396,7 @@ class TestSplitByPos:
         assert left.segment.length == 8
         assert right.segment.length == 12
 
-    def test_split_by_pos_tree_left_subtree(self):
+    def test_split_by_pos_tree_left_subtree(self) -> None:
         """Test splitting in left subtree."""
         with patch("random.randrange") as mock_rand:
             # Need more values: 3 for initial nodes + 2 for split operation
@@ -425,7 +425,7 @@ class TestSplitByPos:
             # Remaining: 5 from split + 20 from root + 30 from right child = 55
             assert right.sub_len == 55
 
-    def test_split_by_pos_tree_right_subtree(self):
+    def test_split_by_pos_tree_right_subtree(self) -> None:
         """Test splitting in right subtree."""
         with patch("random.randrange") as mock_rand:
             mock_rand.side_effect = [50, 100, 25, 75, 80]  # Added 2 more values
@@ -449,7 +449,7 @@ class TestSplitByPos:
             assert right is not None
             assert right.segment.length == 25
 
-    def test_split_by_pos_boundary_positions(self):
+    def test_split_by_pos_boundary_positions(self) -> None:
         """Test splitting at node boundaries."""
         segments = [NonCodingSegment(length=10 * i) for i in [1, 2, 3]]
 
@@ -467,7 +467,7 @@ class TestSplitByPos:
         assert left.segment.length == 10
         assert right.sub_len == 50  # 20 + 30
 
-    def test_split_by_pos_updates_subtree_lengths(self):
+    def test_split_by_pos_updates_subtree_lengths(self) -> None:
         """Test that split correctly updates subtree lengths."""
         segments = [NonCodingSegment(length=10 * i) for i in [1, 2, 3, 4]]
 
@@ -492,7 +492,7 @@ class TestSplitByPos:
         assert left.sub_len == 50
         assert right.sub_len == 50
 
-    def test_split_by_pos_edge_cases(self):
+    def test_split_by_pos_edge_cases(self) -> None:
         """Test edge cases for split_by_pos."""
         # Single node, split at very end
         segment = NonCodingSegment(length=1)
@@ -509,7 +509,7 @@ class TestSplitByPos:
         with pytest.raises(IndexError):
             split_by_pos(node, -1)
 
-    def test_split_by_pos_preserves_tree_structure(self):
+    def test_split_by_pos_preserves_tree_structure(self) -> None:
         """Test that splitting preserves valid tree structure."""
         with patch("random.randrange") as mock_rand:
             mock_rand.side_effect = [i for i in range(50, 70)]
@@ -544,7 +544,7 @@ class TestSplitByPos:
 class TestTreapIntegration:
     """Test integration between merge and split operations."""
 
-    def test_split_then_merge_identity(self):
+    def test_split_then_merge_identity(self) -> None:
         """Test that splitting then merging gives back original tree."""
         with patch("random.randrange") as mock_rand:
             mock_rand.side_effect = [i for i in range(20, 30)]
@@ -568,7 +568,7 @@ class TestTreapIntegration:
             # Should have same total length
             assert reconstructed.sub_len == original_length
 
-    def test_multiple_splits_and_merges(self):
+    def test_multiple_splits_and_merges(self) -> None:
         """Test complex sequence of splits and merges."""
         with patch("random.randrange") as mock_rand:
             mock_rand.side_effect = [i for i in range(50, 80)]
@@ -603,14 +603,14 @@ class TestTreapIntegration:
 
             assert new_tree.sub_len == 30
 
-    def test_treap_maintains_order_property(self):
+    def test_treap_maintains_order_property(self) -> None:
         """Test that treap maintains BST order property for positions."""
         with patch("random.randrange") as mock_rand:
             mock_rand.side_effect = [i for i in range(100, 120)]
 
             # Create segments with different lengths
             lengths = [5, 15, 8, 12, 20]
-            segments = [NonCodingSegment(length=l) for l in lengths]
+            segments = [NonCodingSegment(length=length) for length in lengths]
 
             # Build tree
             tree = None

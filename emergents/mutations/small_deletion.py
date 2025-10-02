@@ -29,7 +29,7 @@ class SmallDeletion(Mutation):
             return True
         return False
 
-    def apply(self, genome: Genome):
+    def apply(self, genome: Genome) -> None:
         """Apply the deletion to the genome."""
         genome.delete_range(self.position, self.position + self.length)
 

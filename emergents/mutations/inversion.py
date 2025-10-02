@@ -54,7 +54,7 @@ class Inversion(Mutation):
             return False
         return True
 
-    def apply(self, genome: Genome):
+    def apply(self, genome: Genome) -> None:
         """Apply the inversion to the genome."""
         left, mid_right = split_by_pos(genome.root, self.start_pos)
         mid, right = split_by_pos(mid_right, self.end_pos - self.start_pos)
@@ -62,7 +62,7 @@ class Inversion(Mutation):
         # Collect middle in order
         segments: list[Segment] = []
 
-        def _flatten(node: Optional[Node]):
+        def _flatten(node: Optional[Node]) -> None:
             if not node:
                 return
             _flatten(node.left)

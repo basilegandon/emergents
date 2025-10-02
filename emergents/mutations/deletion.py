@@ -55,7 +55,7 @@ class Deletion(Mutation):
                 return False
         return True
 
-    def apply(self, genome: Genome):
+    def apply(self, genome: Genome) -> None:
         """Apply the deletion to the genome."""
         genome.delete_range(self.start_pos, self.end_pos + 1)
 

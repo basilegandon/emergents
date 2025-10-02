@@ -22,7 +22,7 @@ class Segment:
     length: int
     sid: uuid.UUID = field(default_factory=lambda: uuid.uuid4())
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.length <= 0:
             raise ValueError("Segment length must be positive.")
 

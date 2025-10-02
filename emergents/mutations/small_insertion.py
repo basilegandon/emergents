@@ -29,7 +29,7 @@ class SmallInsertion(Mutation):
             segment.is_noncoding() or offset == 0
         )  # If inserting at the start of a segment, it's neutral.
 
-    def apply(self, genome: Genome):
+    def apply(self, genome: Genome) -> None:
         """Apply the insertion to the genome."""
         genome.insert_at_gap(self.position, NonCodingSegment(self.length))
 

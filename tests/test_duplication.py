@@ -18,7 +18,7 @@ from emergents.mutations.duplication import Duplication
 class TestDuplicationInitialization:
     """Test Duplication initialization."""
 
-    def test_basic_initialization(self):
+    def test_basic_initialization(self) -> None:
         """Test basic Duplication initialization."""
         mutation = Duplication(start_pos=10, end_pos=50, insertion_pos=75)
 
@@ -30,7 +30,7 @@ class TestDuplicationInitialization:
         with pytest.raises(ValueError):
             Duplication(start_pos=-5, end_pos=50, insertion_pos=75)
 
-    def test_initialization_with_rng_state(self):
+    def test_initialization_with_rng_state(self) -> None:
         """Test Duplication initialization with RNG state."""
         mutation = Duplication(
             start_pos=25, end_pos=75, insertion_pos=100, rng_state=11111
@@ -41,14 +41,14 @@ class TestDuplicationInitialization:
         assert mutation.insertion_pos == 100
         assert mutation.rng_state == 11111
 
-    def test_initialization_reverse_order(self):
+    def test_initialization_reverse_order(self) -> None:
         """Test Duplication initialization with end < start."""
         mutation = Duplication(start_pos=50, end_pos=25, insertion_pos=75)
         assert mutation.start_pos == 50
         assert mutation.end_pos == 25
         assert mutation.insertion_pos == 75
 
-    def test_initialization_insert_within_duplicated_region(self):
+    def test_initialization_insert_within_duplicated_region(self) -> None:
         """Test Duplication initialization with insert_at within duplicated region."""
         mutation = Duplication(start_pos=10, end_pos=50, insertion_pos=30)
         assert mutation.start_pos == 10
@@ -59,7 +59,7 @@ class TestDuplicationInitialization:
 class TestDuplicationNeutrality:
     """Test Duplication neutrality checking."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test genomes."""
         # Create genomes with known segment IDs for testing
         self.noncoding_seg1 = NonCodingSegment(length=30)
@@ -83,7 +83,7 @@ class TestDuplicationNeutrality:
             [CodingSegment(length=100, promoter_direction=PromoterDirection.FORWARD)]
         )
 
-    def test_is_neutral_within_single_noncoding_segment(self):
+    def test_is_neutral_within_single_noncoding_segment(self) -> None:
         """Test neutrality when duplication source is entirely within a single non-coding segment."""
         # Duplicate within first non-coding segment, insert into same segment
         mutation = Duplication(start_pos=5, end_pos=15, insertion_pos=20)
@@ -97,7 +97,7 @@ class TestDuplicationNeutrality:
         mutation = Duplication(start_pos=75, end_pos=85, insertion_pos=90)
         assert mutation.is_neutral(self.mixed_genome)
 
-    def test_is_neutral_within_coding_segment(self):
+    def test_is_neutral_within_coding_segment(self) -> None:
         """Test neutrality when duplication source is entirely within a coding segment."""
         # Duplicate within coding segment, insert in non-coding - should be neutral
         mutation = Duplication(start_pos=35, end_pos=45, insertion_pos=80)
@@ -107,7 +107,7 @@ class TestDuplicationNeutrality:
         mutation = Duplication(start_pos=35, end_pos=45, insertion_pos=55)
         assert not mutation.is_neutral(self.mixed_genome)
 
-    def test_is_neutral_across_segment_boundaries(self):
+    def test_is_neutral_across_segment_boundaries(self) -> None:
         """Test neutrality when duplication source spans multiple segments."""
         # Duplicate across non-coding and coding boundary (promoter in between)
         mutation = Duplication(start_pos=25, end_pos=35, insertion_pos=80)
@@ -117,7 +117,7 @@ class TestDuplicationNeutrality:
         mutation = Duplication(start_pos=65, end_pos=75, insertion_pos=5)
         assert mutation.is_neutral(self.mixed_genome)
 
-    def test_is_neutral_insert_position_matters(self):
+    def test_is_neutral_insert_position_matters(self) -> None:
         """Test that neutrality depends on both source and insert positions."""
         # Duplicate non-coding region, insert into coding region - should not be neutral
         mutation = Duplication(start_pos=5, end_pos=15, insertion_pos=40)
@@ -127,7 +127,7 @@ class TestDuplicationNeutrality:
         mutation = Duplication(start_pos=5, end_pos=15, insertion_pos=80)
         assert mutation.is_neutral(self.mixed_genome)
 
-    def test_is_neutral_single_base_duplications(self):
+    def test_is_neutral_single_base_duplications(self) -> None:
         """Test neutrality for single base duplications."""
         # Single base from non-coding, insert in non-coding
         mutation = Duplication(start_pos=29, end_pos=29, insertion_pos=80)
@@ -141,7 +141,7 @@ class TestDuplicationNeutrality:
         mutation = Duplication(start_pos=30, end_pos=30, insertion_pos=80)
         assert not mutation.is_neutral(self.mixed_genome)
 
-    def test_is_neutral_pure_noncoding_genome(self):
+    def test_is_neutral_pure_noncoding_genome(self) -> None:
         """Test neutrality in pure non-coding genome."""
         # All duplications should be neutral (single segment)
         test_cases = [(0, 10, 50), (25, 35, 70), (40, 60, 20)]
@@ -152,7 +152,7 @@ class TestDuplicationNeutrality:
             )
             assert mutation.is_neutral(self.noncoding_genome)
 
-    def test_is_neutral_pure_coding_genome(self):
+    def test_is_neutral_pure_coding_genome(self) -> None:
         """Test neutrality in pure coding genome."""
         # No duplications should be neutral (single coding segment) except zero-length if inserted at the end or start
         no_neutral_test_cases = [(0, 10, 50), (25, 35, 70), (40, 60, 20)]
@@ -171,7 +171,7 @@ class TestDuplicationNeutrality:
             )
             assert mutation.is_neutral(self.coding_genome)
 
-    def test_is_neutral_invalid_positions(self):
+    def test_is_neutral_invalid_positions(self) -> None:
         """Test neutrality checking with invalid positions."""
         # Start beyond genome length
         mutation = Duplication(start_pos=100, end_pos=105, insertion_pos=10)
@@ -188,7 +188,7 @@ class TestDuplicationNeutrality:
         with pytest.raises(IndexError):
             mutation.is_neutral(self.mixed_genome)
 
-    def test_is_neutral_empty_genome(self):
+    def test_is_neutral_empty_genome(self) -> None:
         """Test neutrality checking with empty genome."""
         empty_genome = Genome()
         mutation = Duplication(start_pos=0, end_pos=1, insertion_pos=0)
@@ -196,7 +196,7 @@ class TestDuplicationNeutrality:
         with pytest.raises(IndexError):
             mutation.is_neutral(empty_genome)
 
-    def test_is_neutral_reverse_order_positions(self):
+    def test_is_neutral_reverse_order_positions(self) -> None:
         """Test neutrality with end < start."""
         # Should raise error for invalid order
         mutation = Duplication(start_pos=30, end_pos=25, insertion_pos=75)
@@ -209,7 +209,7 @@ class TestDuplicationNeutrality:
 class TestDuplicationApplication:
     """Test Duplication application."""
 
-    def test_apply_basic(self):
+    def test_apply_basic(self) -> None:
         """Test basic duplication application."""
         genome = Genome([NonCodingSegment(length=100)])
         original_length = genome.length
@@ -222,7 +222,7 @@ class TestDuplicationApplication:
         # Genome should be longer by 11 bases
         assert genome.length == original_length + 11
 
-    def test_apply_at_beginning(self):
+    def test_apply_at_beginning(self) -> None:
         """Test duplication inserting at beginning of genome."""
         genome = Genome([NonCodingSegment(length=50)])
         original_length = genome.length
@@ -232,7 +232,7 @@ class TestDuplicationApplication:
 
         assert genome.length == original_length + 11  # 10-20 inclusive = 11 bases
 
-    def test_apply_at_end(self):
+    def test_apply_at_end(self) -> None:
         """Test duplication inserting at end of genome."""
         genome = Genome([NonCodingSegment(length=50)])
         original_length = genome.length
@@ -244,7 +244,7 @@ class TestDuplicationApplication:
 
         assert genome.length == original_length + 11  # 10-20 inclusive = 11 bases
 
-    def test_apply_single_base(self):
+    def test_apply_single_base(self) -> None:
         """Test duplicating single base."""
         genome = Genome([NonCodingSegment(length=50)])
         original_length = genome.length
@@ -256,7 +256,7 @@ class TestDuplicationApplication:
 
         assert genome.length == original_length + 1
 
-    def test_apply_entire_segment(self):
+    def test_apply_entire_segment(self) -> None:
         """Test duplicating entire segment."""
         segments: list[Segment] = [
             NonCodingSegment(length=20),
@@ -274,7 +274,7 @@ class TestDuplicationApplication:
 
         assert genome.length == original_length + 20
 
-    def test_apply_across_segments(self):
+    def test_apply_across_segments(self) -> None:
         """Test duplication spanning multiple segments."""
         segments: list[Segment] = [
             NonCodingSegment(length=30),
@@ -290,7 +290,7 @@ class TestDuplicationApplication:
 
         assert genome.length == original_length + 50
 
-    def test_apply_reverse_order(self):
+    def test_apply_reverse_order(self) -> None:
         """Test application with end < start."""
         genome = Genome([NonCodingSegment(length=50)])
 
@@ -298,7 +298,7 @@ class TestDuplicationApplication:
         mutation.apply(genome)
         assert genome.length == 89  # 19 + 20 bases duplicated
 
-    def test_apply_insert_within_duplicated_region_bug(self):
+    def test_apply_insert_within_duplicated_region_bug(self) -> None:
         """Test the bug where insert_at is within the duplicated region."""
         genome = Genome([NonCodingSegment(length=100)])
 
@@ -306,7 +306,7 @@ class TestDuplicationApplication:
         mutation.apply(genome)
         assert genome.length == 141  # 41 bases duplicated
 
-    def test_apply_duplicate_entire_genome(self):
+    def test_apply_duplicate_entire_genome(self) -> None:
         """Test duplicating entire genome."""
         genome = Genome([NonCodingSegment(length=50)])
         original_length = genome.length

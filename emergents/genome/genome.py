@@ -95,7 +95,7 @@ class Genome:
                 return current_node.segment, offset, seg_start, seg_end
         raise IndexError("position out of range (internal mismatch)")
 
-    def insert_at_gap(self, pos: int, segment: Segment):
+    def insert_at_gap(self, pos: int, segment: Segment) -> None:
         """Insert a segment or list of segments at genome coordinate `pos` (0..length inclusive)."""
         # Insertion is always in GAP coordinates
         self._validate_coord(pos, CoordinateSystem.GAP)
@@ -134,7 +134,7 @@ class Genome:
                 mid = Node(merged_segment)
         self.root = merge(merge(left, mid), right)
 
-    def delete_range(self, start: int, end: int):
+    def delete_range(self, start: int, end: int) -> None:
         """Delete bases in interval [start, end). Does nothing if start == end."""
         # Deletion start is always in BASE coordinates
         self._validate_coord(start, CoordinateSystem.BASE)
@@ -153,7 +153,7 @@ class Genome:
         # discard middle
         self.root = merge(left, right)
 
-    def extend_segment_at(self, pos: int, delta: int):
+    def extend_segment_at(self, pos: int, delta: int) -> None:
         """Extend the noncoding segment that contains pos.
         If pos falls inside coding segment, raises an error.
         If delta is negative, raises an error.

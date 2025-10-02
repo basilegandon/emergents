@@ -19,7 +19,7 @@ from emergents.mutations.small_insertion import SmallInsertion
 class TestSmallInsertionInitialization:
     """Test SmallInsertion initialization."""
 
-    def test_basic_initialization(self):
+    def test_basic_initialization(self) -> None:
         """Test basic SmallInsertion initialization."""
         mutation = SmallInsertion(position=50, length=10)
 
@@ -27,7 +27,7 @@ class TestSmallInsertionInitialization:
         assert mutation.length == 10
         assert mutation.rng_state is None
 
-    def test_initialization_with_rng_state(self):
+    def test_initialization_with_rng_state(self) -> None:
         """Test SmallInsertion initialization with RNG state."""
         mutation = SmallInsertion(position=25, length=5, rng_state=12345)
 
@@ -35,14 +35,14 @@ class TestSmallInsertionInitialization:
         assert mutation.length == 5
         assert mutation.rng_state == 12345
 
-    def test_initialization_edge_cases(self):
+    def test_initialization_edge_cases(self) -> None:
         """Test SmallInsertion initialization edge cases."""
         # Zero position
         mutation = SmallInsertion(position=0, length=1)
         assert mutation.position == 0
         assert mutation.length == 1
 
-    def test_initialization_invalid_length(self):
+    def test_initialization_invalid_length(self) -> None:
         """Test SmallInsertion initialization with invalid length."""
         with pytest.raises(ValueError):
             SmallInsertion(position=10, length=0)
@@ -53,7 +53,7 @@ class TestSmallInsertionInitialization:
 class TestSmallInsertionNeutrality:
     """Test SmallInsertion neutrality checking."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test genomes."""
         # Genome with mixed segments
         self.mixed_genome = Genome(
@@ -72,7 +72,7 @@ class TestSmallInsertionNeutrality:
             [CodingSegment(length=100, promoter_direction=PromoterDirection.FORWARD)]
         )
 
-    def test_is_neutral_at_genome_end(self):
+    def test_is_neutral_at_genome_end(self) -> None:
         """Test neutrality when inserting at end of genome."""
         # At end of genome should always be neutral
         mutation = SmallInsertion(position=100, length=10)  # End of mixed_genome
@@ -84,7 +84,7 @@ class TestSmallInsertionNeutrality:
         mutation = SmallInsertion(position=100, length=50)  # End of coding_genome
         assert mutation.is_neutral(self.coding_genome)
 
-    def test_is_neutral_in_noncoding_segments(self):
+    def test_is_neutral_in_noncoding_segments(self) -> None:
         """Test neutrality when inserting in non-coding segments."""
         # Various positions in first non-coding segment
         positions = [0, 5, 10, 15, 20]  # Gap positions in first segment
@@ -100,7 +100,7 @@ class TestSmallInsertionNeutrality:
             mutation = SmallInsertion(position=pos, length=3)
             assert mutation.is_neutral(self.mixed_genome)
 
-    def test_is_neutral_in_coding_segments_interior(self):
+    def test_is_neutral_in_coding_segments_interior(self) -> None:
         """Test neutrality when inserting inside coding segments."""
         # Interior positions in coding segment should not be neutral
         positions = [21, 25, 30, 35, 40, 45, 49]  # Interior gap positions
@@ -109,7 +109,7 @@ class TestSmallInsertionNeutrality:
             mutation = SmallInsertion(position=pos, length=5)
             assert not mutation.is_neutral(self.mixed_genome)
 
-    def test_is_neutral_pure_coding_genome(self):
+    def test_is_neutral_pure_coding_genome(self) -> None:
         """Test neutrality in pure coding genome."""
         # Start position should be neutral (offset 0)
         mutation = SmallInsertion(position=0, length=10)
@@ -125,14 +125,14 @@ class TestSmallInsertionNeutrality:
             mutation = SmallInsertion(position=pos, length=5)
             assert not mutation.is_neutral(self.coding_genome)
 
-    def test_is_neutral_invalid_positions(self):
+    def test_is_neutral_invalid_positions(self) -> None:
         """Test neutrality checking with invalid positions."""
         # Position beyond genome length + 1 (invalid for GAP coordinates)
         mutation = SmallInsertion(position=101, length=5)
         with pytest.raises(IndexError):
             mutation.is_neutral(self.mixed_genome)
 
-    def test_is_neutral_empty_genome(self):
+    def test_is_neutral_empty_genome(self) -> None:
         """Test neutrality checking with empty genome."""
         empty_genome = Genome()
 
@@ -149,7 +149,7 @@ class TestSmallInsertionNeutrality:
 class TestSmallInsertionApplication:
     """Test SmallInsertion application."""
 
-    def test_apply_basic(self):
+    def test_apply_basic(self) -> None:
         """Test basic insertion application."""
         genome = Genome([NonCodingSegment(length=50)])
         original_length = genome.length
@@ -170,7 +170,7 @@ class TestSmallInsertionApplication:
         assert start == 0
         assert end == 60
 
-    def test_apply_at_beginning(self):
+    def test_apply_at_beginning(self) -> None:
         """Test insertion at beginning of genome."""
         genome = Genome([NonCodingSegment(length=50)])
 
@@ -188,7 +188,7 @@ class TestSmallInsertionApplication:
         assert start == 0
         assert end == 65
 
-    def test_apply_at_end(self):
+    def test_apply_at_end(self) -> None:
         """Test insertion at end of genome."""
         genome = Genome([NonCodingSegment(length=50)])
 
@@ -206,7 +206,7 @@ class TestSmallInsertionApplication:
         assert start == 0
         assert end == 70
 
-    def test_apply_creates_noncoding_segment(self):
+    def test_apply_creates_noncoding_segment(self) -> None:
         """Test that application always creates NonCodingSegment."""
         genome = Genome([CodingSegment(length=50)])
 
@@ -224,7 +224,7 @@ class TestSmallInsertionApplication:
 class TestSmallInsertionEdgeCases:
     """Test edge cases for SmallInsertion."""
 
-    def test_neutrality_with_zero_offset_logic(self):
+    def test_neutrality_with_zero_offset_logic(self) -> None:
         """Test the offset == 0 logic in neutrality check."""
         # Create genome where we can test the offset logic
         segments: list[Segment] = [

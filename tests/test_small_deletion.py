@@ -18,7 +18,7 @@ from emergents.mutations.small_deletion import SmallDeletion
 class TestSmallDeletionInitialization:
     """Test SmallDeletion initialization."""
 
-    def test_basic_initialization(self):
+    def test_basic_initialization(self) -> None:
         """Test basic SmallDeletion initialization."""
         mutation = SmallDeletion(position=50, length=10)
 
@@ -26,7 +26,7 @@ class TestSmallDeletionInitialization:
         assert mutation.length == 10
         assert mutation.rng_state is None
 
-    def test_initialization_with_rng_state(self):
+    def test_initialization_with_rng_state(self) -> None:
         """Test SmallDeletion initialization with RNG state."""
         mutation = SmallDeletion(position=25, length=5, rng_state=12345)
 
@@ -34,14 +34,14 @@ class TestSmallDeletionInitialization:
         assert mutation.length == 5
         assert mutation.rng_state == 12345
 
-    def test_initialization_edge_cases(self):
+    def test_initialization_edge_cases(self) -> None:
         """Test SmallDeletion initialization edge cases."""
         # Zero position
         mutation = SmallDeletion(position=0, length=1)
         assert mutation.position == 0
         assert mutation.length == 1
 
-    def test_initialization_invalid_length(self):
+    def test_initialization_invalid_length(self) -> None:
         """Test SmallDeletion initialization with invalid length."""
         with pytest.raises(ValueError):
             SmallDeletion(position=10, length=0)
@@ -53,7 +53,7 @@ class TestSmallDeletionInitialization:
 class TestSmallDeletionNeutrality:
     """Test SmallDeletion neutrality checking."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test genomes."""
         # Create genomes with known segment IDs for testing
         self.noncoding_seg1 = NonCodingSegment(length=30)
@@ -77,7 +77,7 @@ class TestSmallDeletionNeutrality:
             [CodingSegment(length=100, promoter_direction=PromoterDirection.FORWARD)]
         )
 
-    def test_is_neutral_within_single_noncoding_segment(self):
+    def test_is_neutral_within_single_noncoding_segment(self) -> None:
         """Test neutrality when deletion is entirely within a single non-coding segment."""
         # Delete within first non-coding segment
         mutation = SmallDeletion(position=5, length=10)  # positions 5-14
@@ -99,7 +99,7 @@ class TestSmallDeletionNeutrality:
         )  # end of first segment + first base of coding
         assert not mutation.is_neutral(self.mixed_genome)
 
-    def test_is_neutral_within_coding_segment(self):
+    def test_is_neutral_within_coding_segment(self) -> None:
         """Test neutrality when deletion is entirely within a coding segment."""
         # Delete within coding segment - should not be neutral
         mutation = SmallDeletion(position=35, length=10)  # positions 35-44
@@ -111,7 +111,7 @@ class TestSmallDeletionNeutrality:
         mutation = SmallDeletion(position=67, length=5)  # end of coding segment
         assert not mutation.is_neutral(self.mixed_genome)
 
-    def test_is_neutral_across_segment_boundaries(self):
+    def test_is_neutral_across_segment_boundaries(self) -> None:
         """Test neutrality when deletion spans multiple segments."""
         # Delete across non-coding and coding boundary
         mutation = SmallDeletion(position=25, length=10)  # spans segments
@@ -121,7 +121,7 @@ class TestSmallDeletionNeutrality:
         mutation = SmallDeletion(position=65, length=10)  # spans segments
         assert not mutation.is_neutral(self.mixed_genome)
 
-    def test_is_neutral_single_base_deletions(self):
+    def test_is_neutral_single_base_deletions(self) -> None:
         """Test neutrality for single base deletions."""
         # Single base in non-coding
         mutation = SmallDeletion(position=10, length=1)
@@ -131,7 +131,7 @@ class TestSmallDeletionNeutrality:
         mutation = SmallDeletion(position=40, length=1)
         assert not mutation.is_neutral(self.mixed_genome)
 
-    def test_is_neutral_pure_noncoding_genome(self):
+    def test_is_neutral_pure_noncoding_genome(self) -> None:
         """Test neutrality in pure non-coding genome."""
         # All deletions should be neutral (single segment)
         positions_and_lengths = [(0, 10), (25, 15), (50, 20), (90, 10)]
@@ -144,7 +144,7 @@ class TestSmallDeletionNeutrality:
         with pytest.raises(IndexError):
             mutation.is_neutral(self.noncoding_genome)
 
-    def test_is_neutral_pure_coding_genome(self):
+    def test_is_neutral_pure_coding_genome(self) -> None:
         """Test neutrality in pure coding genome."""
         # No deletions should be neutral (single coding segment)
         positions_and_lengths = [(0, 10), (25, 15), (50, 20), (90, 10)]
@@ -153,7 +153,7 @@ class TestSmallDeletionNeutrality:
             mutation = SmallDeletion(position=pos, length=length)
             assert not mutation.is_neutral(self.coding_genome)
 
-    def test_is_neutral_empty_genome(self):
+    def test_is_neutral_empty_genome(self) -> None:
         """Test neutrality checking with empty genome."""
         empty_genome = Genome()
         mutation = SmallDeletion(position=0, length=1)
@@ -165,7 +165,7 @@ class TestSmallDeletionNeutrality:
 class TestSmallDeletionApplication:
     """Test SmallDeletion application."""
 
-    def test_apply_basic(self):
+    def test_apply_basic(self) -> None:
         """Test basic deletion application."""
         genome = Genome([NonCodingSegment(length=100)])
         original_length = genome.length
@@ -176,7 +176,7 @@ class TestSmallDeletionApplication:
         # Genome should be shorter
         assert genome.length == original_length - 10
 
-    def test_apply_at_beginning(self):
+    def test_apply_at_beginning(self) -> None:
         """Test deletion at beginning of genome."""
         genome = Genome([NonCodingSegment(length=50)])
 
@@ -185,7 +185,7 @@ class TestSmallDeletionApplication:
 
         assert genome.length == 35
 
-    def test_apply_at_end(self):
+    def test_apply_at_end(self) -> None:
         """Test deletion at end of genome."""
         genome = Genome([NonCodingSegment(length=50)])
 
@@ -194,7 +194,7 @@ class TestSmallDeletionApplication:
 
         assert genome.length == 35
 
-    def test_apply_entire_segment(self):
+    def test_apply_entire_segment(self) -> None:
         """Test deleting entire segment."""
         segments: list[Segment] = [
             NonCodingSegment(length=20),
@@ -209,7 +209,7 @@ class TestSmallDeletionApplication:
 
         assert genome.length == 50  # 30 + 20
 
-    def test_apply_across_segments(self):
+    def test_apply_across_segments(self) -> None:
         """Test deletion across multiple segments."""
         segments: list[Segment] = [
             NonCodingSegment(length=30),
@@ -224,7 +224,7 @@ class TestSmallDeletionApplication:
 
         assert genome.length == 20  # 10 bases from start + 10 bases from end
 
-    def test_apply_entire_genome(self):
+    def test_apply_entire_genome(self) -> None:
         """Test deleting entire genome."""
         genome = Genome([NonCodingSegment(length=50)])
 
@@ -238,7 +238,7 @@ class TestSmallDeletionApplication:
 class TestSmallDeletionEdgeCases:
     """Test edge cases for SmallDeletion."""
 
-    def test_deletion_single_base_genome(self):
+    def test_deletion_single_base_genome(self) -> None:
         """Test deletion in single-base genome."""
         genome = Genome([NonCodingSegment(length=1)])
 

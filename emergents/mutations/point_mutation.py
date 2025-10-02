@@ -25,7 +25,7 @@ class PointMutation(Mutation):
         )
         return segment.is_noncoding()
 
-    def apply(self, genome: Genome):
+    def apply(self, genome: Genome) -> None:
         """Apply the point mutation to the genome."""
         pass
 

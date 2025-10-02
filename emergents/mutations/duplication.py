@@ -109,7 +109,7 @@ class Duplication(Mutation):
         # if we never found a forbidden promoter, duplication is valid
         return True
 
-    def apply(self, genome: Genome):
+    def apply(self, genome: Genome) -> None:
         """Apply the insertion to the genome."""
         genome.insert_at_gap(
             self.insertion_pos, NonCodingSegment(self.get_length(genome))

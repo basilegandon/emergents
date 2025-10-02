@@ -18,7 +18,7 @@ from emergents.genome.segments import (
 class TestPromoterDirection:
     """Test PromoterDirection enum."""
 
-    def test_promoter_direction_switch(self):
+    def test_promoter_direction_switch(self) -> None:
         """Test switching promoter directions."""
         forward = PromoterDirection.FORWARD
         reverse = PromoterDirection.REVERSE
@@ -30,17 +30,17 @@ class TestPromoterDirection:
         assert forward.switch().switch() == forward
         assert reverse.switch().switch() == reverse
 
-    def test_promoter_direction_equality(self):
+    def test_promoter_direction_equality(self) -> None:
         """Test promoter direction equality."""
         assert PromoterDirection.FORWARD == PromoterDirection.FORWARD
         assert PromoterDirection.REVERSE == PromoterDirection.REVERSE
-        assert PromoterDirection.FORWARD != PromoterDirection.REVERSE
+        assert not (PromoterDirection.FORWARD is PromoterDirection.REVERSE)
 
 
 class TestSegment:
     """Test base Segment class."""
 
-    def test_segment_initialization(self):
+    def test_segment_initialization(self) -> None:
         """Test segment initialization with different parameters."""
         # Basic initialization
         seg = Segment(length=10)
@@ -53,7 +53,7 @@ class TestSegment:
         assert seg.length == 5
         assert seg.sid == custom_uuid
 
-    def test_segment_length_validation(self):
+    def test_segment_length_validation(self) -> None:
         """Test segment creation with various length values."""
         # Zero and negative lengths
         with pytest.raises(ValueError):
@@ -62,14 +62,14 @@ class TestSegment:
         with pytest.raises(ValueError):
             Segment(length=-5)
 
-    def test_segment_unique_ids(self):
+    def test_segment_unique_ids(self) -> None:
         """Test that segments get unique IDs by default."""
         seg1 = Segment(length=10)
         seg2 = Segment(length=10)
 
         assert seg1.sid != seg2.sid
 
-    def test_segment_equality_and_identity(self):
+    def test_segment_equality_and_identity(self) -> None:
         """Test segment equality and identity."""
         seg1 = Segment(length=10)
         seg2 = Segment(length=10)
@@ -86,12 +86,12 @@ class TestSegment:
 class TestNonCodingSegment:
     """Test NonCodingSegment class."""
 
-    def test_noncoding_segment_is_noncoding(self):
+    def test_noncoding_segment_is_noncoding(self) -> None:
         """Test that NonCodingSegment correctly identifies as noncoding."""
         seg = NonCodingSegment(length=10)
         assert seg.is_noncoding()
 
-    def test_noncoding_segment_clone_with_length(self):
+    def test_noncoding_segment_clone_with_length(self) -> None:
         """Test cloning NonCodingSegment with new length."""
         original = NonCodingSegment(length=100)
         cloned = original.clone_with_length(200)
@@ -101,7 +101,7 @@ class TestNonCodingSegment:
         assert cloned.sid != original.sid  # Should get new UUID
         assert original.length == 100  # Original unchanged
 
-    def test_noncoding_segment_clone_edge_cases(self):
+    def test_noncoding_segment_clone_edge_cases(self) -> None:
         """Test cloning with edge case lengths."""
         original = NonCodingSegment(length=100)
 
@@ -117,12 +117,12 @@ class TestNonCodingSegment:
 class TestCodingSegment:
     """Test CodingSegment class."""
 
-    def test_coding_segment_initialization_defaults(self):
+    def test_coding_segment_initialization_defaults(self) -> None:
         """Test CodingSegment initialization with defaults."""
         seg = CodingSegment(length=100)
         assert seg.promoter_direction == PromoterDirection.FORWARD
 
-    def test_coding_segment_initialization_with_direction(self):
+    def test_coding_segment_initialization_with_direction(self) -> None:
         """Test CodingSegment initialization with specific promoter direction."""
         forward_seg = CodingSegment(
             length=100, promoter_direction=PromoterDirection.FORWARD
@@ -134,12 +134,12 @@ class TestCodingSegment:
         assert forward_seg.promoter_direction == PromoterDirection.FORWARD
         assert reverse_seg.promoter_direction == PromoterDirection.REVERSE
 
-    def test_coding_segment_is_not_noncoding(self):
+    def test_coding_segment_is_not_noncoding(self) -> None:
         """Test that CodingSegment correctly identifies as coding."""
         seg = CodingSegment(length=10)
         assert not seg.is_noncoding()
 
-    def test_coding_segment_clone_with_length(self):
+    def test_coding_segment_clone_with_length(self) -> None:
         """Test cloning CodingSegment with new length."""
         original = CodingSegment(
             length=100, promoter_direction=PromoterDirection.REVERSE
@@ -154,7 +154,7 @@ class TestCodingSegment:
         assert cloned.sid != original.sid  # Should get new UUID
         assert original.length == 100  # Original unchanged
 
-    def test_coding_segment_clone_preserves_direction(self):
+    def test_coding_segment_clone_preserves_direction(self) -> None:
         """Test that cloning preserves promoter direction."""
         forward_original = CodingSegment(
             length=50, promoter_direction=PromoterDirection.FORWARD
@@ -169,7 +169,7 @@ class TestCodingSegment:
         assert forward_cloned.promoter_direction == PromoterDirection.FORWARD
         assert reverse_cloned.promoter_direction == PromoterDirection.REVERSE
 
-    def test_coding_segment_clone_edge_cases(self):
+    def test_coding_segment_clone_edge_cases(self) -> None:
         """Test cloning with edge case lengths."""
         original = CodingSegment(
             length=100, promoter_direction=PromoterDirection.REVERSE
@@ -187,7 +187,7 @@ class TestCodingSegment:
 class TestSegmentPromoterDirectionSwitches:
     """Test promoter direction switching cases for coding segments."""
 
-    def test_promoter_direction_switching(self):
+    def test_promoter_direction_switching(self) -> None:
         """Test promoter direction switching."""
         # Test multiple switches
         direction = PromoterDirection.FORWARD

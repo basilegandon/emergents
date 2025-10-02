@@ -13,7 +13,7 @@ from emergents.genome.segments import CodingSegment, NonCodingSegment, Segment
 class TestGenomeInitialization:
     """Test Genome initialization."""
 
-    def test_empty_genome_initialization(self):
+    def test_empty_genome_initialization(self) -> None:
         """Test creating empty genome."""
         genome = Genome()
 
@@ -22,7 +22,7 @@ class TestGenomeInitialization:
         assert not genome.circular
         assert isinstance(genome._validator, DefaultCoordinateValidator)  # type: ignore
 
-    def test_genome_with_segments(self):
+    def test_genome_with_segments(self) -> None:
         """Test creating genome with initial segments."""
         segments: list[Segment] = [
             NonCodingSegment(length=10),
@@ -35,7 +35,7 @@ class TestGenomeInitialization:
         assert genome.length == 10 + 20 + 30
         assert genome.root is not None
 
-    def test_circular_genome(self):
+    def test_circular_genome(self) -> None:
         """Test creating circular genome."""
         genome = Genome(circular=True)
         assert genome.circular
@@ -49,7 +49,7 @@ class TestGenomeInitialization:
 class TestGenomeFindSegment:
     """Test segment finding methods."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test genome."""
         self.segments: list[Segment] = [
             NonCodingSegment(length=20),  # positions 0-19
@@ -58,7 +58,7 @@ class TestGenomeFindSegment:
         ]
         self.genome = Genome(segments=self.segments)
 
-    def test_find_segment_at_base_valid_positions(self):
+    def test_find_segment_at_base_valid_positions(self) -> None:
         """Test finding segments at valid base positions."""
         # First segment
         seg, offset, start, end = self.genome.find_segment_at_position(
@@ -103,7 +103,7 @@ class TestGenomeFindSegment:
         assert start == 50
         assert end == 100
 
-    def test_find_segment_at_base_invalid_positions(self):
+    def test_find_segment_at_base_invalid_positions(self) -> None:
         """Test finding segments at invalid base positions."""
         with pytest.raises(IndexError):
             self.genome.find_segment_at_position(-1, CoordinateSystem.BASE)
@@ -113,7 +113,7 @@ class TestGenomeFindSegment:
                 100, CoordinateSystem.BASE
             )  # Length is 100, so max valid is 99
 
-    def test_find_segment_at_position_with_coordinate_systems(self):
+    def test_find_segment_at_position_with_coordinate_systems(self) -> None:
         """Test find_segment_at_position with different coordinate systems."""
         # BASE coordinates
         seg, offset, start, end = self.genome.find_segment_at_position(
@@ -133,7 +133,7 @@ class TestGenomeFindSegment:
         assert start == 20
         assert end == 50
 
-    def test_find_segment_gap_at_end(self):
+    def test_find_segment_gap_at_end(self) -> None:
         """Test finding segment at gap position equal to genome length."""
         seg, offset, start, end = self.genome.find_segment_at_position(
             100, CoordinateSystem.GAP
@@ -143,7 +143,7 @@ class TestGenomeFindSegment:
         assert start == 50
         assert end == 100
 
-    def test_find_segment_empty_genome(self):
+    def test_find_segment_empty_genome(self) -> None:
         """Test finding segments in empty genome."""
         empty_genome = Genome()
 
@@ -157,11 +157,11 @@ class TestGenomeFindSegment:
 class TestGenomeInsertion:
     """Test genome insertion operations."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test genome."""
         self.genome = Genome([NonCodingSegment(length=100)])
 
-    def test_insert_at_gap_beginning(self):
+    def test_insert_at_gap_beginning(self) -> None:
         """Test inserting at beginning of genome."""
         new_segment = NonCodingSegment(length=25)
         self.genome.insert_at_gap(0, new_segment)
@@ -175,7 +175,7 @@ class TestGenomeInsertion:
         assert start == 0
         assert end == 125
 
-    def test_insert_at_gap_middle(self):
+    def test_insert_at_gap_middle(self) -> None:
         """Test inserting in middle of genome."""
         new_segment = NonCodingSegment(length=30)
         self.genome.insert_at_gap(50, new_segment)
@@ -189,7 +189,7 @@ class TestGenomeInsertion:
         assert start == 0
         assert end == 130
 
-    def test_insert_at_gap_end(self):
+    def test_insert_at_gap_end(self) -> None:
         """Test inserting at end of genome."""
         new_segment = NonCodingSegment(length=15)
         self.genome.insert_at_gap(100, new_segment)
@@ -203,7 +203,7 @@ class TestGenomeInsertion:
         assert start == 0
         assert end == 115
 
-    def test_insert_invalid_positions(self):
+    def test_insert_invalid_positions(self) -> None:
         """Test inserting at invalid positions."""
         segment = NonCodingSegment(length=10)
 
@@ -217,7 +217,7 @@ class TestGenomeInsertion:
 class TestGenomeDeletion:
     """Test genome deletion operations."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test genome."""
         self.segments: list[Segment] = [
             NonCodingSegment(length=20),  # 0-19
@@ -226,7 +226,7 @@ class TestGenomeDeletion:
         ]
         self.genome = Genome(segments=self.segments)
 
-    def test_delete_base_range_beginning(self):
+    def test_delete_base_range_beginning(self) -> None:
         """Test deleting from beginning of genome."""
         self.genome.delete_range(0, 10)
 
@@ -240,7 +240,7 @@ class TestGenomeDeletion:
         assert start == 0
         assert end == 10
 
-    def test_delete_base_range_middle(self):
+    def test_delete_base_range_middle(self) -> None:
         """Test deleting from middle of genome."""
         self.genome.delete_range(25, 35)  # Delete 10 bases from second segment
 
@@ -269,7 +269,7 @@ class TestGenomeDeletion:
         assert start == 25
         assert end == 40
 
-    def test_delete_base_range_end(self):
+    def test_delete_base_range_end(self) -> None:
         """Test deleting from end of genome."""
         self.genome.delete_range(90, 100)
 
@@ -283,7 +283,7 @@ class TestGenomeDeletion:
         assert start == 50
         assert end == 90
 
-    def test_delete_entire_segments(self):
+    def test_delete_entire_segments(self) -> None:
         """Test deleting entire segments."""
         # Delete the entire second segment
         self.genome.delete_range(20, 50)
@@ -298,7 +298,7 @@ class TestGenomeDeletion:
         assert start == 20
         assert end == 70
 
-    def test_delete_single_base(self):
+    def test_delete_single_base(self) -> None:
         """Test inclusive deletion method using delete_range."""
         original_length = self.genome.length
 
@@ -306,14 +306,14 @@ class TestGenomeDeletion:
         self.genome.delete_range(50, 51)  # delete_range uses [start, end)
         assert self.genome.length == original_length - 1
 
-    def test_delete_empty_range(self):
+    def test_delete_empty_range(self) -> None:
         """Test deleting empty range."""
         original_length = self.genome.length
 
         self.genome.delete_range(50, 50)  # Empty range
         assert self.genome.length == original_length  # Length should be unchanged
 
-    def test_delete_invalid_ranges(self):
+    def test_delete_invalid_ranges(self) -> None:
         """Test deleting invalid ranges."""
         with pytest.raises(IndexError):
             self.genome.delete_range(-1, 10)
@@ -324,7 +324,7 @@ class TestGenomeDeletion:
         with pytest.raises(ValueError):
             self.genome.delete_range(50, 25)  # start > end
 
-    def test_delete_entire_genome(self):
+    def test_delete_entire_genome(self) -> None:
         """Test deleting entire genome."""
         self.genome.delete_range(0, self.genome.length)
         assert self.genome.length == 0
@@ -334,7 +334,7 @@ class TestGenomeDeletion:
 class TestGenomeExtension:
     """Test genome segment extension operations."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test genome."""
         self.segments: list[Segment] = [
             NonCodingSegment(length=50),
@@ -343,7 +343,7 @@ class TestGenomeExtension:
         ]
         self.genome = Genome(segments=self.segments)
 
-    def test_extend_noncoding_segment(self):
+    def test_extend_noncoding_segment(self) -> None:
         """Test extending non-coding segment using extend_segment_at."""
         original_length = self.genome.length
 
@@ -359,7 +359,7 @@ class TestGenomeExtension:
         assert start == 0
         assert end == 60
 
-    def test_extend_noncoding_segment_at_the_end(self):
+    def test_extend_noncoding_segment_at_the_end(self) -> None:
         """Test extending non-coding segment using extend_segment_at."""
         original_length = self.genome.length
 
@@ -375,13 +375,13 @@ class TestGenomeExtension:
         assert start == 80
         assert end == 110
 
-    def test_negative_extent(self):
+    def test_negative_extent(self) -> None:
         """Test shrinking non-coding segment."""
 
         with pytest.raises(ValueError, match="delta must be positive"):
             self.genome.extend_segment_at(25, -1)
 
-    def test_extend_coding_segment_error(self):
+    def test_extend_coding_segment_error(self) -> None:
         """Test that extending coding segment raises error."""
         with pytest.raises(
             TypeError,
@@ -389,7 +389,7 @@ class TestGenomeExtension:
         ):
             self.genome.extend_segment_at(60, 10)  # Position 60 is in coding segment
 
-    def test_extend_invalid_positions(self):
+    def test_extend_invalid_positions(self) -> None:
         """Test extending at invalid positions."""
         with pytest.raises(IndexError):
             self.genome.extend_segment_at(-1, 10)
@@ -401,7 +401,7 @@ class TestGenomeExtension:
 class TestGenomeCoalescing:
     """Test genome coalescing operations."""
 
-    def test_coalesce_adjacent_noncoding(self):
+    def test_coalesce_adjacent_noncoding(self) -> None:
         """Test coalescing adjacent non-coding segments."""
         segments: list[Segment] = [
             NonCodingSegment(length=10),
@@ -426,7 +426,7 @@ class TestGenomeCoalescing:
         length_list = [seg.length for seg in segment_list]
         assert length_list == [30, 15, 30]
 
-    def test_coalesce_no_adjacent_noncoding(self):
+    def test_coalesce_no_adjacent_noncoding(self) -> None:
         """Test coalescing when no adjacent non-coding segments exist."""
         segments: list[Segment] = [
             NonCodingSegment(length=10),
@@ -448,14 +448,14 @@ class TestGenomeCoalescing:
             for new_segment, original_segment in zip(new_segments, original_segments)
         )
 
-    def test_coalesce_empty_genome(self):
+    def test_coalesce_empty_genome(self) -> None:
         """Test coalescing empty genome."""
         genome = Genome()
         genome.coalesce_all()
         assert genome.length == 0
         assert genome.root is None
 
-    def test_coalesce_single_segment(self):
+    def test_coalesce_single_segment(self) -> None:
         """Test coalescing single segment genome."""
         genome = Genome([NonCodingSegment(length=50)])
         original_length = genome.length
@@ -467,7 +467,7 @@ class TestGenomeCoalescing:
 class TestGenomeIteration:
     """Test genome iteration methods."""
 
-    def setup_method(self):
+    def setup_method(self) -> None:
         """Set up test genome."""
         self.segments: list[Segment] = [
             NonCodingSegment(length=10),
@@ -476,7 +476,7 @@ class TestGenomeIteration:
         ]
         self.genome = Genome(segments=self.segments)
 
-    def test_iter_segments(self):
+    def test_iter_segments(self) -> None:
         """Test iterating over segments."""
         segments_info = list(self.genome.iter_segments())
 
@@ -500,13 +500,13 @@ class TestGenomeIteration:
         assert start == 30
         assert end == 59
 
-    def test_iter_segments_empty_genome(self):
+    def test_iter_segments_empty_genome(self) -> None:
         """Test iterating over empty genome."""
         empty_genome = Genome()
         segments_info = list(empty_genome.iter_segments())
         assert segments_info == []
 
-    def test_to_list(self):
+    def test_to_list(self) -> None:
         """Test converting genome to segment list."""
         segment_list = self.genome.to_list()
 
@@ -515,9 +515,9 @@ class TestGenomeIteration:
 
 
 class TestGenomeSpecialMethods:
-    """Test genome special methods (__len__, __bool__, __repr__)."""
+    """Test genome special methods (__len__, __bool__)."""
 
-    def test_len(self):
+    def test_len(self) -> None:
         """Test __len__ method."""
         empty_genome = Genome()
         assert len(empty_genome) == 0
@@ -528,7 +528,7 @@ class TestGenomeSpecialMethods:
         genome = Genome([NonCodingSegment(length=10), CodingSegment(length=20)])
         assert len(genome) == 30
 
-    def test_bool(self):
+    def test_bool(self) -> None:
         """Test __bool__ method."""
         empty_genome = Genome()
         assert not empty_genome

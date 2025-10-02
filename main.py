@@ -7,18 +7,14 @@ from emergents.genome.segments import (
     PromoterDirection,
     Segment,
 )
-from emergents.mutations.duplication import Duplication
 from emergents.mutations.inversion import Inversion
-from emergents.mutations.point_mutation import PointMutation
-from emergents.mutations.small_deletion import SmallDeletion
-from emergents.mutations.small_insertion import SmallInsertion
 
 # from emergents.simulation import Simulation
 
 logger = logging.getLogger(__name__)
 
 
-def main():
+def main() -> None:
     segments: list[Segment] = [
         NonCodingSegment(10),
         CodingSegment(200, promoter_direction=PromoterDirection.FORWARD),

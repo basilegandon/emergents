@@ -11,7 +11,7 @@ class Mutation:
         """Check if the mutation is neutral (i.e., does not affect the organism's fitness)."""
         raise NotImplementedError("Subclasses must implement this method.")
 
-    def apply(self, genome: Genome):
+    def apply(self, genome: Genome) -> None:
         """Apply to genome. Returns metadata needed to invert or validate."""
         raise NotImplementedError("Subclasses must implement this method.")
 

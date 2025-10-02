@@ -20,7 +20,7 @@ class Node:
         return f"Node({self.segment}, prio={self.priority}, sub_len={self.sub_len})"
 
 
-def update_subtree_len(node: Optional[Node]):
+def update_subtree_len(node: Optional[Node]) -> None:
     """Update the subtree size information."""
     if node is None:
         return

@@ -182,7 +182,7 @@ class Genome:
         update_subtree_len(root_node)
         self.root = merge(merge(left, root_node), right)
 
-    def coalesce_all(self):
+    def coalesce_all(self) -> None:
         """Coalesce adjacent non-coding segments by flattening and rebuilding the tree.
         This is an O(n) operation but simple and robust. Use after many edits or when constructing final form.
         """
@@ -232,7 +232,7 @@ class Genome:
     def to_list(self) -> list[Segment]:
         return [segment for segment, _, _ in self.iter_segments()]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         parts = [
             f"{segment}@[{start},{end}]" for segment, start, end in self.iter_segments()
         ]

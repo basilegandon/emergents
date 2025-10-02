@@ -7,7 +7,7 @@ from emergents.genome.segments import Segment
 class Node:
     __slots__ = ("segment", "priority", "left", "right", "sub_len")
 
-    def __init__(self, segment: Segment):
+    def __init__(self, segment: Segment) -> None:
         self.segment: Segment = segment
         self.priority: int = random.randrange(
             1 << 30
@@ -16,7 +16,7 @@ class Node:
         self.right: Optional[Node] = None
         self.sub_len: int = segment.length
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Node({self.segment}, prio={self.priority}, sub_len={self.sub_len})"
 
 

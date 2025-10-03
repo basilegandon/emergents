@@ -1,6 +1,6 @@
 """
 Comprehensive unit tests for emergents.mutations.point_mutation module.
-Tests PointMutation class with all edge cases and error conditions.
+Tests the PointMutation class with all edge cases and error conditions.
 """
 
 import pytest
@@ -11,39 +11,41 @@ from emergents.mutations.point_mutation import PointMutation
 
 
 class TestPointMutationInitialization:
-    """Test PointMutation initialization."""
+    """Test PointMutation initialization and parameter validation."""
 
-    def test_basic_initialization(self) -> None:
-        """Test basic PointMutation initialization."""
+    def test_initialization_basic(self) -> None:
+        """Test basic PointMutation initialization with valid parameters."""
         mutation = PointMutation(position=50)
 
         assert mutation.position == 50
         assert mutation.rng_state is None
 
     def test_initialization_with_rng_state(self) -> None:
-        """Test PointMutation initialization with RNG state."""
+        """Test PointMutation initialization with RNG state parameter."""
         mutation = PointMutation(position=25, rng_state=12345)
 
         assert mutation.position == 25
         assert mutation.rng_state == 12345
 
     def test_initialization_edge_cases(self) -> None:
-        """Test PointMutation initialization edge cases."""
-        # Zero position
+        """Test PointMutation initialization with edge case positions."""
+        # Zero position should be valid
         mutation = PointMutation(position=0)
         assert mutation.position == 0
 
-        # Negative position (should be allowed at initialization)
+    def test_initialization_invalid_parameters(self) -> None:
+        """Test PointMutation initialization with invalid parameters."""
+        # Negative position should raise ValueError
         with pytest.raises(ValueError):
             PointMutation(position=-1)
 
 
 class TestPointMutationNeutrality:
-    """Test PointMutation neutrality checking."""
+    """Test neutrality checking for PointMutation across different genome structures."""
 
     def setup_method(self) -> None:
-        """Set up test genomes."""
-        # Genome with mixed segments
+        """Set up test genomes with various segment configurations."""
+        # Mixed genome with alternating segment types
         self.mixed_genome = Genome(
             [
                 NonCodingSegment(length=20),  # positions 0-19
@@ -52,70 +54,70 @@ class TestPointMutationNeutrality:
             ]
         )
 
-        # Pure non-coding genome
+        # Pure non-coding genome for baseline testing
         self.noncoding_genome = Genome([NonCodingSegment(length=100)])
 
-        # Pure coding genome
+        # Pure coding genome for contrast testing
         self.coding_genome = Genome(
             [CodingSegment(length=100, promoter_direction=PromoterDirection.FORWARD)]
         )
 
-    def test_is_neutral_noncoding_segments(self) -> None:
-        """Test neutrality in non-coding segments."""
-        # First non-coding segment
+    def test_neutrality_in_noncoding_segments(self) -> None:
+        """Test that mutations in non-coding segments are neutral."""
+        # Test various positions within first non-coding segment
         mutation = PointMutation(position=10)
         assert mutation.is_neutral(self.mixed_genome)
 
-        # Boundaries of non-coding segments
-        mutation = PointMutation(position=0)
+        # Test boundaries of non-coding segments
+        mutation = PointMutation(position=0)  # Start of genome
         assert mutation.is_neutral(self.mixed_genome)
 
-        mutation = PointMutation(position=19)
+        mutation = PointMutation(position=19)  # End of first non-coding
         assert mutation.is_neutral(self.mixed_genome)
 
-        mutation = PointMutation(position=50)
+        mutation = PointMutation(position=50)  # Start of last non-coding
         assert mutation.is_neutral(self.mixed_genome)
 
-        mutation = PointMutation(position=99)
+        mutation = PointMutation(position=99)  # End of genome
         assert mutation.is_neutral(self.mixed_genome)
 
-    def test_is_neutral_coding_segments(self) -> None:
-        """Test neutrality in coding segments."""
-        # Coding segment boundaries
+    def test_neutrality_in_coding_segments(self) -> None:
+        """Test that mutations in coding segments are not neutral."""
+        # Test boundaries of coding segment
         mutation = PointMutation(position=20)
         assert not mutation.is_neutral(self.mixed_genome)
 
         mutation = PointMutation(position=49)
         assert not mutation.is_neutral(self.mixed_genome)
 
-        # Middle of coding segment
+        # Test middle of coding segment
         mutation = PointMutation(position=35)
         assert not mutation.is_neutral(self.mixed_genome)
 
-    def test_is_neutral_pure_noncoding_genome(self) -> None:
-        """Test neutrality in pure non-coding genome."""
-        positions = [0, 25, 50, 75, 99]
+    def test_neutrality_pure_noncoding_genome(self) -> None:
+        """Test neutrality in genome with only non-coding segments."""
+        test_positions = [0, 25, 50, 75, 99]
 
-        for pos in positions:
-            mutation = PointMutation(position=pos)
+        for position in test_positions:
+            mutation = PointMutation(position=position)
             assert mutation.is_neutral(self.noncoding_genome)
 
-    def test_is_neutral_pure_coding_genome(self) -> None:
-        """Test neutrality in pure coding genome."""
-        positions = [0, 25, 50, 75, 99]
+    def test_neutrality_pure_coding_genome(self) -> None:
+        """Test neutrality in genome with only coding segments."""
+        test_positions = [0, 25, 50, 75, 99]
 
-        for pos in positions:
-            mutation = PointMutation(position=pos)
+        for position in test_positions:
+            mutation = PointMutation(position=position)
             assert not mutation.is_neutral(self.coding_genome)
 
-    def test_is_neutral_invalid_positions(self) -> None:
-        """Test neutrality checking with invalid positions."""
-        # Position beyond genome length
+    def test_neutrality_invalid_positions(self) -> None:
+        """Test neutrality checking with positions outside genome bounds."""
+        # Position beyond genome length should raise IndexError
         mutation = PointMutation(position=100)
         with pytest.raises(IndexError):
             mutation.is_neutral(self.mixed_genome)
 
-    def test_is_neutral_empty_genome(self) -> None:
+    def test_neutrality_empty_genome(self) -> None:
         """Test neutrality checking with empty genome."""
         empty_genome = Genome()
         mutation = PointMutation(position=0)
@@ -125,10 +127,10 @@ class TestPointMutationNeutrality:
 
 
 class TestPointMutationApplication:
-    """Test PointMutation application."""
+    """Test PointMutation application to genomes."""
 
-    def test_apply_does_nothing(self) -> None:
-        """Test that apply method does nothing (current implementation)."""
+    def test_apply_implementation(self) -> None:
+        """Test that apply method preserves genome structure (placeholder implementation)."""
         genome = Genome([NonCodingSegment(length=100)])
         original_length = genome.length
         original_segments = genome.to_list()
@@ -136,6 +138,26 @@ class TestPointMutationApplication:
         mutation = PointMutation(position=50)
         mutation.apply(genome)
 
-        # Genome should be unchanged
+        # Genome should remain unchanged with current implementation
         assert genome.length == original_length
         assert genome.to_list() == original_segments
+
+
+class TestPointMutationSerialization:
+    """Test PointMutation serialization and string representation."""
+
+    def test_serialize_not_implemented(self) -> None:
+        """Test that serialize method raises NotImplementedError."""
+        mutation = PointMutation(position=25)
+
+        with pytest.raises(NotImplementedError):
+            mutation.serialize()
+
+    def test_describe_method(self) -> None:
+        """Test that describe method returns proper string representation."""
+        mutation = PointMutation(position=25)
+        description = mutation.describe()
+
+        assert isinstance(description, str)
+        assert "25" in description
+        assert "Point mutation" in description

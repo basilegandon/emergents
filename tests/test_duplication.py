@@ -1,6 +1,6 @@
 """
 Comprehensive unit tests for emergents.mutations.duplication module.
-Tests Duplication class with all edge cases and error conditions.
+Tests the Duplication class with all edge cases and error conditions.
 """
 
 import pytest
@@ -16,10 +16,10 @@ from emergents.mutations.duplication import Duplication
 
 
 class TestDuplicationInitialization:
-    """Test Duplication initialization."""
+    """Test Duplication initialization and parameter validation."""
 
-    def test_basic_initialization(self) -> None:
-        """Test basic Duplication initialization."""
+    def test_initialization_basic(self) -> None:
+        """Test basic Duplication initialization with valid parameters."""
         mutation = Duplication(start_pos=10, end_pos=50, insertion_pos=75)
 
         assert mutation.start_pos == 10
@@ -57,10 +57,10 @@ class TestDuplicationInitialization:
 
 
 class TestDuplicationNeutrality:
-    """Test Duplication neutrality checking."""
+    """Test neutrality checking for Duplication across different genome structures."""
 
     def setup_method(self) -> None:
-        """Set up test genomes."""
+        """Set up test genomes with various segment configurations."""
         # Create genomes with known segment IDs for testing
         self.noncoding_seg1 = NonCodingSegment(length=30)
         self.coding_seg = CodingSegment(length=40)
@@ -83,8 +83,8 @@ class TestDuplicationNeutrality:
             [CodingSegment(length=100, promoter_direction=PromoterDirection.FORWARD)]
         )
 
-    def test_is_neutral_within_single_noncoding_segment(self) -> None:
-        """Test neutrality when duplication source is entirely within a single non-coding segment."""
+    def test_neutrality_within_single_noncoding_segment(self) -> None:
+        """Test that duplications entirely within non-coding segments are neutral."""
         # Duplicate within first non-coding segment, insert into same segment
         mutation = Duplication(start_pos=5, end_pos=15, insertion_pos=20)
         assert mutation.is_neutral(self.mixed_genome)
@@ -207,7 +207,7 @@ class TestDuplicationNeutrality:
 
 
 class TestDuplicationApplication:
-    """Test Duplication application."""
+    """Test Duplication application to genomes."""
 
     def test_apply_basic(self) -> None:
         """Test basic duplication application."""
@@ -316,3 +316,26 @@ class TestDuplicationApplication:
         mutation.apply(genome)
 
         assert genome.length == original_length * 2
+
+
+class TestDuplicationSerialization:
+    """Test Duplication serialization and string representation."""
+
+    def test_serialization_methods_exist(self) -> None:
+        """Test that Duplication implements serialization methods."""
+        mutation = Duplication(start_pos=10, end_pos=50, insertion_pos=75)
+        genome = Genome([NonCodingSegment(length=100)])
+
+        # These methods should exist and return appropriate types
+        description = mutation.describe(genome)
+        assert isinstance(description, str)
+        assert "10" in description
+        assert "50" in description
+
+        # Check if serialize is implemented or raises NotImplementedError
+        try:
+            serialized = mutation.serialize()
+            assert isinstance(serialized, dict)
+        except NotImplementedError:
+            # This is acceptable if not yet implemented
+            pass

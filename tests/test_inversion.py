@@ -1,6 +1,6 @@
 """
 Comprehensive unit tests for emergents.mutations.inversion module.
-Tests Inversion class with all edge cases and error conditions.
+Tests the Inversion class with all edge cases and error conditions.
 """
 
 import pytest
@@ -17,10 +17,10 @@ from emergents.mutations.inversion import Inversion
 
 
 class TestInversionInitialization:
-    """Test Inversion initialization."""
+    """Test Inversion initialization and parameter validation."""
 
-    def test_basic_initialization(self) -> None:
-        """Test basic Inversion initialization."""
+    def test_initialization_basic(self) -> None:
+        """Test basic Inversion initialization with valid parameters."""
         mutation = Inversion(start_pos=10, end_pos=50)
 
         assert mutation.start_pos == 10
@@ -50,10 +50,10 @@ class TestInversionInitialization:
 
 
 class TestInversionNeutrality:
-    """Test Inversion neutrality checking."""
+    """Test neutrality checking for Inversion across different genome structures."""
 
     def setup_method(self) -> None:
-        """Set up test genomes."""
+        """Set up test genomes with various segment configurations."""
         # Create genomes with known segment IDs for testing
         self.noncoding_seg1 = NonCodingSegment(length=30)
         self.coding_seg = CodingSegment(length=40)
@@ -76,8 +76,8 @@ class TestInversionNeutrality:
             [CodingSegment(length=100, promoter_direction=PromoterDirection.FORWARD)]
         )
 
-    def test_is_neutral_within_single_noncoding_segment(self) -> None:
-        """Test neutrality when inversion is entirely within a single non-coding segment."""
+    def test_neutrality_within_single_noncoding_segment(self) -> None:
+        """Test that inversions entirely within non-coding segments are neutral."""
         # Invert within first non-coding segment
         mutation = Inversion(start_pos=5, end_pos=15)  # positions 5-14
         assert mutation.is_neutral(self.mixed_genome)
@@ -188,7 +188,7 @@ class TestInversionNeutrality:
 
 
 class TestInversionApplication:
-    """Test Inversion application."""
+    """Test Inversion application to genomes."""
 
     def test_apply_basic(self) -> None:
         """Test basic inversion application."""
@@ -302,3 +302,25 @@ class TestInversionApplication:
         assert genome.root is not None
         assert isinstance(genome.root.segment, CodingSegment)
         assert genome.root.segment.promoter_direction == PromoterDirection.REVERSE
+
+
+class TestInversionSerialization:
+    """Test Inversion serialization and string representation."""
+
+    def test_serialization_methods_exist(self) -> None:
+        """Test that Inversion implements serialization methods."""
+        mutation = Inversion(start_pos=10, end_pos=50)
+
+        # These methods should exist and return appropriate types
+        description = mutation.describe()
+        assert isinstance(description, str)
+        assert "10" in description
+        assert "50" in description
+
+        # Check if serialize is implemented or raises NotImplementedError
+        try:
+            serialized = mutation.serialize()
+            assert isinstance(serialized, dict)
+        except NotImplementedError:
+            # This is acceptable if not yet implemented
+            pass

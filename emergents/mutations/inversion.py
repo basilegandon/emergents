@@ -78,8 +78,6 @@ class Inversion(Mutation):
                 seg.promoter_direction = seg.promoter_direction.switch()
             inverted_segments.append(seg)
 
-        print("Inverted segments:", inverted_segments)
-
         # Merge back together
         if left:
             rightmost = left

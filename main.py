@@ -1,4 +1,13 @@
+"""
+Evolution simulation demonstrating optimized population dynamics.
+
+This module showcases the new evolution engine with clean architecture,
+efficient algorithms, and comprehensive analysis tools.
+"""
+
 import logging
+
+import matplotlib.pyplot as plt
 
 from emergents.genome.genome import Genome
 from emergents.genome.segments import (
@@ -7,14 +16,15 @@ from emergents.genome.segments import (
     PromoterDirection,
     Segment,
 )
-from emergents.mutations.inversion import Inversion
-
-# from emergents.simulation import Simulation
+from emergents.population import Population, PopulationStats
 
 logger = logging.getLogger(__name__)
 
 
-def main() -> None:
+def demo_single_genome() -> None:
+    """Demonstrate basic genome functionality."""
+    print("=== Single Genome Demo ===")
+
     segments: list[Segment] = [
         NonCodingSegment(10),
         CodingSegment(200, promoter_direction=PromoterDirection.FORWARD),
@@ -25,73 +35,74 @@ def main() -> None:
         NonCodingSegment(100),
     ]
     genome = Genome(segments)
-    logger.info(genome)
+    print(f"Created genome with length: {len(genome)} bp")
+    print(f"Genome is circular: {genome.circular}")
+    print(f"Number of segments: {len(segments)}")
 
-    # invalid_point_mutation = PointMutation(position=100)
-    # valid_point_mutation = PointMutation(position=799)
 
-    # logger.info(
-    #     f"{invalid_point_mutation.describe()} is neutral? {invalid_point_mutation.is_neutral(genome)}"
-    # )
-    # logger.info(
-    #     f"{valid_point_mutation.describe()} is neutral? {valid_point_mutation.is_neutral(genome)}"
-    # )
+def demo_population_evolution() -> None:
+    """Demo the new population evolution system."""
+    print("\n=== Population Evolution Demo ===")
 
-    # invalid_small_insertion = SmallInsertion(position=101, length=10)
-    # valid_small_insertion = SmallInsertion(position=800, length=10)
+    # Create a population
+    population = Population(population_size=100, mutation_rate=1e-3, random_seed=42)
 
-    # logger.info(
-    #     f"{invalid_small_insertion.describe()} is neutral? {invalid_small_insertion.is_neutral(genome)}"
-    # )
-    # logger.info(
-    #     f"{valid_small_insertion.describe()} is neutral? {valid_small_insertion.is_neutral(genome)}"
-    # )
+    # Initialize population to a copied single genome
+    initial_genome_length = 100
+    nb_coding_segments = 2
+    length_coding_segments = 25
+    length_non_coding_segments = 25
+    promoter_directions = PromoterDirection.FORWARD
 
-    # valid_small_insertion.apply(genome)
-    # logger.info(genome)
-
-    # # Test small deletion
-
-    # invalid_small_deletion = SmallDeletion(position=1, length=10)
-    # valid_small_deletion = SmallDeletion(position=0, length=10)
-
-    # logger.info(
-    #     f"{invalid_small_deletion.describe()} is neutral? {invalid_small_deletion.is_neutral(genome)}"
-    # )
-    # logger.info(
-    #     f"{valid_small_deletion.describe()} is neutral? {valid_small_deletion.is_neutral(genome)}"
-    # )
-
-    # valid_small_deletion.apply(genome)
-    # logger.info(genome)
-
-    # # Test duplication
-    # invalid_duplication = Duplication(0, 10, 309)
-    # valid_duplication = Duplication(261, 508, 220)
-
-    # logger.info(
-    #     f"{invalid_duplication.describe(genome)} is neutral? {invalid_duplication.is_neutral(genome)}"
-    # )
-    # logger.info(
-    #     f"{valid_duplication.describe(genome)} is neutral? {valid_duplication.is_neutral(genome)}"
-    # )
-
-    # valid_duplication.apply(genome)
-    # logger.info(genome)
-
-    # Test Inversion
-    invalid_inversion = Inversion(5, 209)
-    valid_inversion = Inversion(220, 620)
-
-    logger.info(
-        f"{invalid_inversion.describe()} is neutral? {invalid_inversion.is_neutral(genome)}"
-    )
-    logger.info(
-        f"{valid_inversion.describe()} is neutral? {valid_inversion.is_neutral(genome)}"
+    population.initialize_population(
+        initial_genome_length=initial_genome_length,
+        nb_coding_segments=nb_coding_segments,
+        length_coding_segments=length_coding_segments,
+        length_non_coding_segments=length_non_coding_segments,
+        promoter_directions=promoter_directions,
+        is_circular=True,
     )
 
-    valid_inversion.apply(genome)
-    logger.info(genome)
+    print(f"Created population with {len(population.genomes)} genomes")
+
+    # Show initial stats
+    initial_stats = population.get_population_stats(
+        current_pop_size=len(population.genomes)
+    )
+    print(f"Initial stats: {initial_stats}")
+
+    # Run evolution for a few generations
+    print("\nRunning evolution...")
+    stats: list[PopulationStats] = population.evolve(
+        num_generations=10000, report_every=1000
+    )
+
+    # Show final diversity
+    diversity = population.get_genome_diversity()
+    print("\nFinal diversity metrics:")
+    print(f"  Length diversity: {diversity['length_diversity']:.3f}")
+    print(f"  Length std dev: {diversity['length_std']:.1f}")
+
+    # Plot average genome length over generations
+    avg_lengths = [stat.avg_genome_length for stat in stats]
+    generations = list(range(len(avg_lengths)))
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(generations, avg_lengths, marker="o")
+    plt.title("Average Genome Length Over Generations")
+    plt.xlabel("Generation")
+    plt.ylabel("Average Genome Length")
+    plt.grid(True)
+    plt.show()
+
+
+def main() -> None:
+    # Configure logging
+    logging.basicConfig(level=logging.INFO)
+
+    # Run both demos
+    demo_single_genome()
+    demo_population_evolution()
 
 
 if __name__ == "__main__":

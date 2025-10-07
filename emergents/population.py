@@ -1,19 +1,18 @@
 """
-Population-based evolution simulation for Genomes.
+Optimized population-based evolution simulation for Genomes.
 
-This module provides classes for managing populations of genomes and simulating
-evolutionary processes through repeated application of mutations over generations.
+This module provides a high-performance Population class with clean separation
+of concerns, efficient algorithms, and comprehensive analysis capabilities.
 """
 
 import copy
+import logging
 import random
-import statistics
-from dataclasses import dataclass
 from typing import Any, Literal, Optional, Union
 
-import numpy as np
 from tqdm import tqdm
 
+from emergents.config import MutationConfig
 from emergents.genome.genome import Genome
 from emergents.genome.segments import (
     CodingSegment,
@@ -21,48 +20,30 @@ from emergents.genome.segments import (
     PromoterDirection,
     Segment,
 )
-from emergents.mutations.base import Mutation
-from emergents.mutations.deletion import Deletion
-from emergents.mutations.duplication import Duplication
-from emergents.mutations.inversion import Inversion
-from emergents.mutations.point_mutation import PointMutation
-from emergents.mutations.small_deletion import SmallDeletion
-from emergents.mutations.small_insertion import SmallInsertion
+from emergents.mutation_manager import MutationManager
+from emergents.statistics import (
+    MutationCounts,
+    PopulationStats,
+    StatsCalculator,
+    StatsTracker,
+)
+
+logger = logging.getLogger(__name__)
 
 
-@dataclass
-class PopulationStats:
-    """Statistics for a population at a given generation."""
-
-    generation: int
-    population_size: int
-    avg_genome_length: float
-    min_genome_length: int
-    max_genome_length: int
-    total_mutations_applied: int
-    neutral_mutations: int
-    non_neutral_mutations: int
-    livings_after_mutations: int
-
-    def __str__(self) -> str:
-        return (
-            f"\nGen {self.generation}: Pop={self.population_size}, "
-            f"AvgLen={self.avg_genome_length:.1f}, "
-            f"Mutations={self.total_mutations_applied} "
-            f"({self.neutral_mutations}Neutral/{self.non_neutral_mutations}NonNeutral) "
-            f"{self.livings_after_mutations} Survivors"
-        )
+# PopulationStats class moved to emergents.statistics module
 
 
 class Population:
     """
-    A population of genomes that can evolve through mutation and selection.
+    Optimized population manager for genome evolution simulation.
 
-    The population manages a collection of genomes and provides methods for:
-    - Random initialization of genomes
-    - Application of mutations according to specified rates
-    - Selection pressure based on fitness functions
-    - Evolution over multiple generations
+    This class provides high-performance population management with clean
+    separation of concerns:
+    - Genome initialization and management
+    - Evolution orchestration (delegates mutation logic)
+    - Statistics tracking and reporting
+    - Efficient genome selection and replication
     """
 
     def __init__(
@@ -72,38 +53,44 @@ class Population:
         random_seed: Optional[int] = None,
     ):
         """
-        Initialize a population.
+        Initialize a population with validation.
 
         Args:
             population_size: Number of genomes in the population
             mutation_rate: Probability that each genome gets mutated per generation
             random_seed: Seed for reproducible random number generation
+
+        Raises:
+            ValueError: If parameters are invalid
         """
-        if population_size <= 0:
-            raise ValueError("Population size must be positive")
-        if not 0 <= mutation_rate <= 1:
-            raise ValueError("Mutation rate must be between 0 and 1")
+        self._validate_init_params(population_size, mutation_rate)
 
         self.population_size = population_size
         self.mutation_rate = mutation_rate
         self.genomes: list[Genome] = []
         self.generation = 0
-        self.stats_history: list[PopulationStats] = []
 
         # Set up random number generator
         if random_seed is not None:
             random.seed(random_seed)
 
-        # Available mutation types and their weights
-        uniform_weight = 1.0 / 6.0
-        self.mutation_types: dict[type[Mutation], float] = {
-            PointMutation: uniform_weight,
-            SmallDeletion: uniform_weight,
-            SmallInsertion: uniform_weight,
-            Deletion: uniform_weight,
-            Duplication: uniform_weight,
-            Inversion: uniform_weight,
-        }
+        # Initialize components with default configuration
+        mutation_config = MutationConfig()
+        self.mutation_manager = MutationManager(mutation_config)
+        self.stats_tracker = StatsTracker()
+
+        logger.info(
+            f"Initialized population: size={population_size}, "
+            f"mutation_rate={mutation_rate}, seed={random_seed}"
+        )
+
+    @staticmethod
+    def _validate_init_params(population_size: int, mutation_rate: float) -> None:
+        """Validate initialization parameters."""
+        if population_size <= 0:
+            raise ValueError("Population size must be positive")
+        if not 0 <= mutation_rate <= 1:
+            raise ValueError("Mutation rate must be between 0 and 1")
 
     def initialize_population(
         self,
@@ -199,168 +186,94 @@ class Population:
 
         self.genomes = [copy.deepcopy(genome) for _ in range(self.population_size)]
 
-    def add_genome(self, genome: Genome) -> None:
-        """Add a genome to the population."""
-        self.genomes.append(genome)
-        if len(self.genomes) > self.population_size:
-            self.population_size = len(self.genomes)
+    def update_mutation_config(self, config: MutationConfig) -> None:
+        """Update mutation configuration."""
+        self.mutation_manager.update_config(config)
+        logger.info("Updated mutation configuration")
 
-    def set_mutation_weights(self, weights: dict[type[Mutation], float]) -> None:
+    def apply_mutations(self) -> tuple[MutationCounts, list[int]]:
         """
-        Set the relative weights for different mutation types.
-
-        Args:
-            weights: Dictionary mapping mutation types to their relative weights
-        """
-        if not weights:
-            raise ValueError("Weights dictionary cannot be empty")
-
-        # Normalize weights to sum to 1
-        total_weight = sum(weights.values())
-        self.mutation_types = {
-            mut_type: weight / total_weight for mut_type, weight in weights.items()
-        }
-
-    def _select_mutation_type(self) -> type[Mutation]:
-        """Randomly select a mutation type based on weights."""
-        types = list(self.mutation_types.keys())
-        weights = list(self.mutation_types.values())
-        return random.choices(types, weights=weights)[0]
-
-    def _create_random_mutation(self, genome: Genome) -> Mutation:
-        """Create a random mutation appropriate for the given genome."""
-        mutation_type = self._select_mutation_type()
-
-        if mutation_type == PointMutation:
-            position = random.randint(0, len(genome) - 1)
-            return PointMutation(position=position)
-
-        elif mutation_type == SmallDeletion:
-            max_del_size = min(10, len(genome))
-            del_size = random.randint(1, max_del_size)
-            start_pos = random.randint(0, len(genome) - del_size)
-            return SmallDeletion(position=start_pos, length=del_size)
-
-        elif mutation_type == SmallInsertion:
-            position = random.randint(0, len(genome))
-            length = random.randint(1, 10)
-            return SmallInsertion(position=position, length=length)
-
-        elif mutation_type == Deletion:
-            del_size = random.randint(1, len(genome))
-            start_pos = random.randint(0, len(genome) - del_size)
-            end_pos = start_pos + del_size - 1
-            return Deletion(start_pos=start_pos, end_pos=end_pos)
-
-        elif mutation_type == Duplication:
-            dup_size = random.randint(1, len(genome))
-            start_pos = random.randint(0, len(genome) - dup_size)
-            end_pos = start_pos + dup_size - 1
-            insertion_pos = random.randint(0, len(genome))
-            return Duplication(
-                start_pos=start_pos, end_pos=end_pos, insertion_pos=insertion_pos
-            )
-
-        elif mutation_type == Inversion:
-            inv_size = random.randint(1, len(genome))
-            start_pos = random.randint(0, len(genome) - inv_size)
-            end_pos = start_pos + inv_size
-            return Inversion(start_pos=start_pos, end_pos=end_pos)
-
-        else:
-            # Fallback
-            return PointMutation(position=random.randint(0, len(genome) - 1))
-
-    def apply_mutations(self) -> tuple[dict[str, int], list[int]]:
-        """
-        Apply mutations to the population based on mutation rate.
+        Apply mutations to the population using the mutation manager.
 
         Returns:
-            A tuple containing:
-            - Dictionary with counts of mutations applied
-            - List of indices of genomes that had non-neutral mutations
+            Tuple containing mutation counts and indices of dead genomes
         """
-        mutation_counts = {"total": 0, "neutral": 0, "non_neutral": 0, "failed": 0}
-
-        dead_genomes_indices: list[int] = []
-        for genome_idx, genome in enumerate(self.genomes):
-            nb_mutations: int = np.random.binomial(genome.length, self.mutation_rate)
-            for _ in range(nb_mutations):
-                if len(self.genomes) == 0:
-                    dead_genomes_indices.append(genome_idx)
-                    break
-                mutation = self._create_random_mutation(genome)
-
-                if mutation.is_neutral(genome):
-                    mutation_counts["neutral"] += 1
-                    mutation.apply(genome)
-
-                else:
-                    mutation_counts["non_neutral"] += 1
-                    dead_genomes_indices.append(genome_idx)
-
-                mutation_counts["total"] += 1
-                genome.coalesce_all()
-        return mutation_counts, dead_genomes_indices
-
-    def get_population_stats(self, current_pop_size: int) -> PopulationStats:
-        """Calculate and return statistics for the current population."""
-        if not self.genomes:
-            return PopulationStats(
-                generation=self.generation,
-                population_size=0,
-                avg_genome_length=0.0,
-                min_genome_length=0,
-                max_genome_length=0,
-                total_mutations_applied=0,
-                neutral_mutations=0,
-                non_neutral_mutations=0,
-                livings_after_mutations=0,
-            )
-
-        lengths = [len(genome) for genome in self.genomes]
-
-        # Get mutation counts from the last evolution step
-        last_mutation_counts = getattr(
-            self, "_last_mutation_counts", {"total": 0, "neutral": 0, "non_neutral": 0}
+        return self.mutation_manager.apply_mutations_to_population(
+            self.genomes, self.mutation_rate
         )
 
-        return PopulationStats(
+    def get_population_stats(self, current_pop_size: int) -> PopulationStats:
+        """
+        Calculate and return statistics for the current population.
+
+        Args:
+            current_pop_size: Number of survivors after mutations
+
+        Returns:
+            PopulationStats object with current generation statistics
+        """
+        # Get the last mutation counts from stats tracker
+        last_mutation_counts = self.stats_tracker.current_mutation_counts
+
+        return StatsCalculator.calculate_population_stats(
+            genomes=self.genomes,
             generation=self.generation,
-            population_size=len(self.genomes),
-            avg_genome_length=statistics.mean(lengths),
-            min_genome_length=min(lengths),
-            max_genome_length=max(lengths),
-            total_mutations_applied=last_mutation_counts.get("total", 0),
-            neutral_mutations=last_mutation_counts.get("neutral", 0),
-            non_neutral_mutations=last_mutation_counts.get("non_neutral", 0),
-            livings_after_mutations=current_pop_size,
+            mutation_counts=last_mutation_counts,
+            survivors_count=current_pop_size,
         )
 
     def evolve_one_generation(self) -> PopulationStats:
         """
-        Evolve the population for one generation.
-
-        Args:
-            selection_pressure: Fraction of population to replace via selection
+        Evolve the population for one generation with optimized performance.
 
         Returns:
             Statistics for this generation
         """
-        # Apply mutations
+        # Reset mutation counts for new generation
+        self.stats_tracker.reset_mutation_counts()
+
+        # Apply mutations using the mutation manager
         mutation_counts, dead_genomes_indices = self.apply_mutations()
-        self._last_mutation_counts = mutation_counts
 
-        # Remove dead genomes (in reverse order to maintain indices)
-        for idx in sorted(set(dead_genomes_indices), reverse=True):
-            if 0 <= idx < len(self.genomes):
-                del self.genomes[idx]
+        # Update mutation counts in stats tracker
+        self.stats_tracker.current_mutation_counts = mutation_counts
 
-        # Replenish population by copying surviving genomes
-        current_pop_size = len(self.genomes)
-        if current_pop_size == 0:
+        # Remove dead genomes efficiently (in reverse order to maintain indices)
+        survivors_count = len(self.genomes)
+        if dead_genomes_indices:
+            dead_set = set(dead_genomes_indices)
+            survivors_count = len(self.genomes) - len(dead_set)
+
+            # Create new list without dead genomes
+            self.genomes = [
+                genome for idx, genome in enumerate(self.genomes) if idx not in dead_set
+            ]
+
+        if survivors_count == 0:
             raise RuntimeError("All genomes died! Population extinct.")
 
+        self._replenish_population(survivors_count)
+
+        # Update generation counter
+        self.generation += 1
+
+        # Calculate and store statistics
+        stats = self.get_population_stats(survivors_count)
+        self.stats_tracker.record_generation(stats)
+
+        return stats
+
+    def _replenish_population(self, survivors_count: int) -> None:
+        """
+        Replenish population to target size.
+        We need to replenish from 0 to simulate luck: even a good genome can fail
+        to reproduce. This is key to model the drift effect.
+
+        Args:
+            survivors_count: Number of genomes that survived
+        """
+
+        # Create new genomes by copying from survivors
         new_genomes: list[Genome] = []
         for _ in range(self.population_size):
             parent = random.choice(self.genomes)
@@ -368,33 +281,33 @@ class Population:
 
         self.genomes = new_genomes
 
-        # Update generation counter
-        self.generation += 1
-
-        # Calculate and store statistics
-        stats = self.get_population_stats(current_pop_size)
-        self.stats_history.append(stats)
-
-        return stats
-
     def evolve(
         self,
         num_generations: int,
         report_every: int = 100,
     ) -> list[PopulationStats]:
         """
-        Evolve the population for multiple generations.
+        Evolve the population for multiple generations with comprehensive reporting.
 
         Args:
             num_generations: Number of generations to evolve
-            selection_pressure: Selection pressure per generation
             report_every: Print stats every N generations (0 = no reporting)
 
         Returns:
             List of statistics for each generation
+
+        Raises:
+            ValueError: If num_generations is not positive
+            RuntimeError: If population goes extinct
         """
         if num_generations <= 0:
             raise ValueError("Number of generations must be positive")
+
+        logger.info(
+            f"Starting evolution: {num_generations} generations, "
+            f"population_size={len(self.genomes)}, "
+            f"mutation_rate={self.mutation_rate}"
+        )
 
         print(f"Starting evolution for {num_generations} generations...")
         print(f"Initial population size: {len(self.genomes)}")
@@ -403,40 +316,40 @@ class Population:
 
         generation_stats: list[PopulationStats] = []
 
-        for gen in tqdm(
-            range(num_generations), desc="Evolving Generations", unit="gen"
-        ):
-            stats = self.evolve_one_generation()
-            generation_stats.append(stats)
+        try:
+            for gen in tqdm(
+                range(num_generations), desc="Evolving Generations", unit="gen"
+            ):
+                stats = self.evolve_one_generation()
+                generation_stats.append(stats)
 
-            if report_every > 0 and gen % report_every == 0:
-                print(stats)
+                if report_every > 0 and gen % report_every == 0:
+                    print(stats)
+                    logger.info(f"Generation {gen}: {stats}")
+
+        except RuntimeError as e:
+            logger.error(f"Evolution failed at generation {self.generation}: {e}")
+            raise
 
         print("-" * 60)
         print("Evolution complete!")
-        final_stats: PopulationStats = (
-            generation_stats[-1]
-            if generation_stats
-            else self.get_population_stats(current_pop_size=len(self.genomes))
-        )
-        print(f"Final: {final_stats}")
+
+        if generation_stats:
+            final_stats = generation_stats[-1]
+            print(f"Final: {final_stats}")
+            logger.info(f"Evolution completed successfully: {final_stats}")
 
         return generation_stats
 
-    def get_genome_diversity(self) -> dict[str, Any]:
+    def get_genome_diversity(self) -> dict[str, float]:
         """
-        Calculate diversity metrics for the population.
+        Calculate comprehensive diversity metrics for the population.
 
         Returns:
             Dictionary with diversity statistics
         """
-        if not self.genomes:
-            return {"length_diversity": 0, "length_std": 0}
+        return StatsCalculator.calculate_diversity_metrics(self.genomes)
 
-        lengths = [len(genome) for genome in self.genomes]
-
-        return {
-            "length_diversity": len(set(lengths))
-            / len(lengths),  # Fraction of unique lengths
-            "length_std": statistics.stdev(lengths) if len(lengths) > 1 else 0,
-        }
+    def get_evolution_summary(self) -> dict[str, Any]:
+        """Get a summary of the evolution history."""
+        return self.stats_tracker.get_summary_metrics()

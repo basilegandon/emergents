@@ -11,8 +11,12 @@ import sys
 import matplotlib.pyplot as plt
 
 from emergents.config import SimulationConfig
+from emergents.file_plotter import PlotData
 from emergents.genome.segments import PromoterDirection
 from emergents.population import Population, PopulationStats
+
+# import rich
+
 
 # Configure logging
 logging.basicConfig(
@@ -104,27 +108,64 @@ def plot_evolution_results(stats: list[PopulationStats]) -> None:
         # Add some styling
         plt.tight_layout()
 
-        try:
-            plt.show()
-        except Exception as e:
-            logger.warning(f"Could not display plot: {e}")
-            # Try to save instead
-            plt.savefig("evolution_results.png", dpi=150, bbox_inches="tight")
-            print("Plot saved as 'evolution_results.png'")
+        # Try to save instead
+        plt.savefig("evolution_results.png", dpi=150, bbox_inches="tight")
+        logger.info("Plot saved as 'evolution_results.png'")
+
+        # Important: Close the figure to free resources and prevent hanging
+        plt.close("all")
+
     except Exception as e:
         logger.error(f"Error in plotting: {e}")
+    finally:
+        # Ensure matplotlib is properly cleaned up
+        try:
+            plt.close("all")
+        except Exception as e:
+            logger.error(f"Error closing plots: {e}")
 
 
-def run_comprehensive_demo() -> None:
-    """Run a comprehensive evolution demo with configuration management."""
-    logger.info("Starting comprehensive evolution demonstration")
+def cleanup_resources() -> None:
+    """Clean up all system resources to ensure proper shutdown."""
+    try:
+        # Clean up matplotlib
+        import matplotlib.pyplot as plt
+
+        plt.close("all")
+        plt.ioff()  # Turn off interactive mode
+
+        # Clean up any remaining multiprocessing resources
+        import multiprocessing as mp
+
+        for p in mp.active_children():
+            if p.is_alive():
+                logger.warning(f"Terminating remaining process: {p.name}")
+                p.terminate()
+                p.join(timeout=2.0)
+                if p.is_alive():
+                    logger.error(f"Failed to terminate process: {p.name}")
+
+        # Force garbage collection
+        import gc
+
+        gc.collect()
+
+        logger.info("Resource cleanup completed")
+
+    except Exception as e:
+        logger.warning(f"Error during resource cleanup: {e}")
+
+
+def run() -> None:
+    """Run with configuration management."""
+    logger.info("Starting evolution simulation run")
 
     try:
         # Create configuration
         config = SimulationConfig.create_default()
 
-        print("\n=== Comprehensive Evolution Demo ===")
-        print(
+        logger.info("\n=== Evolution Simulation ===")
+        logger.info(
             f"Configuration: {config.population.size} genomes, "
             f"{config.evolution.num_generations} generations"
         )
@@ -148,22 +189,30 @@ def run_comprehensive_demo() -> None:
 
         logger.info(f"Initialized population with {len(population.genomes)} genomes")
 
-        # Run evolution
-        evolution_stats = population.evolve(
+        # Run evolution with plotting if enabled
+        evolution_stats: list[PlotData] = population.evolve(
             num_generations=config.evolution.num_generations,
             report_every=config.evolution.report_interval,
+            plot_update_interval=(
+                config.evolution.report_interval
+                if config.evolution.enable_plotting
+                else None
+            ),
+            plot_filename=config.evolution.plot_filename,
         )
 
         # Display final results
         if evolution_stats:
-            final_stats = evolution_stats[-1]
-            print(f"\nFinal Results: {final_stats}")
+            final_stats: PopulationStats = evolution_stats[-1].stats
+            logger.info(f"Final results: {final_stats}")
 
             diversity = population.get_genome_diversity()
-            print(f"Final diversity: {diversity['length_diversity']:.3f}")
+            logger.info(f"Final diversity: {diversity['length_diversity']:.3f}")
 
             if config.evolution.enable_plotting:
-                plot_evolution_results(evolution_stats)
+                plot_evolution_results(
+                    [plot_data.stats for plot_data in evolution_stats]
+                )
 
         logger.info("Comprehensive demonstration completed successfully")
 
@@ -175,23 +224,20 @@ def run_comprehensive_demo() -> None:
 def main() -> None:
     """Main entry point with comprehensive error handling."""
     try:
-        print("Starting Evolution Simulation")
         logger.info("Application started")
 
-        demo_population_evolution()
-
-        # Run comprehensive demo
-        run_comprehensive_demo()
+        run()
 
         logger.info("Application completed successfully")
 
     except KeyboardInterrupt:
         logger.info("Application interrupted by user")
-        print("\nSimulation interrupted by user")
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
-        print(f"An error occurred: {e}")
         sys.exit(1)
+    finally:
+        # Ensure complete cleanup of all resources
+        cleanup_resources()
 
 
 if __name__ == "__main__":

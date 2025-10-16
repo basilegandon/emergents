@@ -8,11 +8,14 @@ of concerns, efficient algorithms, and comprehensive analysis capabilities.
 import copy
 import logging
 import random
-from typing import Any, Literal, Optional, Union
+import signal
+from types import FrameType
+from typing import Any, Literal, Optional
 
 from tqdm import tqdm
 
 from emergents.config import MutationConfig
+from emergents.file_plotter import MultiprocessFilePlotter, PlotData
 from emergents.genome.genome import Genome
 from emergents.genome.segments import (
     CodingSegment,
@@ -96,9 +99,9 @@ class Population:
         self,
         initial_genome_length: int,
         nb_coding_segments: int,
-        length_coding_segments: Union[int, list[int]],
-        length_non_coding_segments: Union[int, list[int]],
-        promoter_directions: Union[PromoterDirection, list[PromoterDirection]],
+        length_coding_segments: int | list[int],
+        length_non_coding_segments: int | list[int],
+        promoter_directions: PromoterDirection | list[PromoterDirection],
         is_circular: bool = False,
         nature_of_extremities: Literal["C--C", "NC--NC", "C--NC"] = "NC--NC",
     ) -> None:
@@ -285,16 +288,20 @@ class Population:
         self,
         num_generations: int,
         report_every: int = 100,
-    ) -> list[PopulationStats]:
+        plot_update_interval: Optional[int] = None,
+        plot_filename: str = "evolution_progress.png",
+    ) -> list[PlotData]:
         """
         Evolve the population for multiple generations with comprehensive reporting.
 
         Args:
             num_generations: Number of generations to evolve
             report_every: Print stats every N generations (0 = no reporting)
+            plot_update_interval: Update plots every N generations (None = no plotting)
+            plot_filename: Filename for saved plots
 
         Returns:
-            List of statistics for each generation
+            List of PlotData objects for each generation
 
         Raises:
             ValueError: If num_generations is not positive
@@ -309,37 +316,171 @@ class Population:
             f"mutation_rate={self.mutation_rate}"
         )
 
-        print(f"Starting evolution for {num_generations} generations...")
-        print(f"Initial population size: {len(self.genomes)}")
-        print(f"Mutation rate: {self.mutation_rate}")
-        print("-" * 60)
+        if plot_update_interval:
+            logger.info(
+                f"File-based plotting enabled (save to '{plot_filename}' every {plot_update_interval} generations)"
+            )
+            logger.info("Press Ctrl+C to interrupt and save all data...")
+        logger.info("-" * 60)
 
-        generation_stats: list[PopulationStats] = []
+        plot_data_list: list[PlotData] = []  # For enhanced plotting with genome lengths
 
+        # Set up plotting if enabled
+        plotter: MultiprocessFilePlotter | None = None
+        interrupted = False
+
+        if plot_update_interval:
+            try:
+                plotter = MultiprocessFilePlotter(
+                    filename=plot_filename,
+                    save_history=True,
+                    history_dir="evolution_plots",
+                    title="Evolution Progress",
+                    max_queue_size=100,
+                )
+
+                if plotter:
+                    plotter.initialize()
+            except Exception as e:
+                logger.warning(f"Failed to initialize plotter: {e}")
+                plotter = None
+
+        def signal_handler(signum: int, frame: Optional[FrameType]) -> None:
+            nonlocal interrupted
+            interrupted = True
+            logger.warning(
+                f"Keyboard interrupt received at generation {len(plot_data_list)}!"
+            )
+            logger.warning("Current data will be preserved.")
+            if plotter:
+                try:
+                    # Only update the plotter with current data, don't close here
+                    # The finally block will handle closing properly
+                    plotter.update(plot_data_list)
+                except Exception as e:
+                    logger.warning(f"Error updating plotter on interrupt: {e}")
+
+        # Set up keyboard interrupt handler
+        original_handler = signal.signal(signal.SIGINT, signal_handler)
+
+        progress_bar = None
         try:
-            for gen in tqdm(
-                range(num_generations), desc="Evolving Generations", unit="gen"
-            ):
+            progress_bar = tqdm(
+                range(num_generations),
+                desc="Evolving Generations",
+                unit="gen",
+                leave=False,
+            )
+
+            for gen in progress_bar:
+                # Check for interruption
+                if interrupted:
+                    break
+
                 stats = self.evolve_one_generation()
-                generation_stats.append(stats)
+                plot_data_list.append(
+                    PlotData(stats=stats, genome_lengths=self.get_genome_lengths())
+                )
 
                 if report_every > 0 and gen % report_every == 0:
-                    print(stats)
-                    logger.info(f"Generation {gen}: {stats}")
+                    logger.info(f"{stats}")
+
+                # Update real-time plot if enabled
+                if plotter and plot_update_interval and gen % plot_update_interval == 0:
+                    plotter.update(plot_data_list)
 
         except RuntimeError as e:
             logger.error(f"Evolution failed at generation {self.generation}: {e}")
             raise
+        except Exception as e:
+            logger.error(f"Unexpected error during evolution: {e}")
+            raise
+        finally:
+            # Restore original signal handler first
+            try:
+                signal.signal(signal.SIGINT, original_handler)
+            except Exception as e:
+                logger.warning(f"Error restoring signal handler: {e}")
 
-        print("-" * 60)
-        print("Evolution complete!")
+            logger.info("Evolution run ended, finalizing...")
 
-        if generation_stats:
-            final_stats = generation_stats[-1]
-            print(f"Final: {final_stats}")
+            # Close progress bar explicitly
+            if progress_bar:
+                try:
+                    logger.info("Closing progress bar...")
+                    progress_bar.close()
+                    logger.info("Progress bar closed")
+                except Exception as e:
+                    logger.warning(f"Error closing progress bar: {e}")
+
+            # Close plotter if it was created
+            if plotter:
+                try:
+                    logger.info("Closing plotter...")
+                    plotter.close()
+                    logger.info("Plotter closed successfully")
+                except Exception as e:
+                    logger.warning(f"Error closing plotter: {e}")
+
+            # Force cleanup of all multiprocessing resources more aggressively
+            logger.info("Cleaning up multiprocessing resources...")
+            import multiprocessing as mp
+            import time
+
+            try:
+                active_children = mp.active_children()
+                logger.info(f"Found {len(active_children)} active child processes")
+
+                for p in active_children:
+                    if p.is_alive():
+                        logger.info(f"Terminating process {p.name} (PID: {p.pid})")
+                        p.terminate()
+                        p.join(timeout=1.0)
+
+                        if p.is_alive():
+                            logger.warning(f"Force killing process {p.name}")
+                            try:
+                                import os
+
+                                if hasattr(os, "kill") and p.pid:
+                                    os.kill(p.pid, 9)
+                            except Exception as e:
+                                logger.error(f"Failed to kill process {p.name}: {e}")
+
+                # Force cleanup of any remaining resources
+                time.sleep(0.1)  # Small delay to allow cleanup
+                logger.info("Multiprocessing cleanup completed")
+
+            except Exception as e:
+                logger.warning(f"Error cleaning up multiprocessing resources: {e}")
+
+            # Additional cleanup for potential hanging resources
+            try:
+                import gc
+
+                gc.collect()  # Force garbage collection
+            except Exception as e:
+                logger.warning(f"Error during garbage collection: {e}")
+
+        logger.info("-" * 60)
+        if interrupted:
+            logger.info(f"Evolution interrupted at generation {len(plot_data_list)}!")
+            logger.info("All data up to interruption has been preserved.")
+
+            # After cleanup is complete, re-raise KeyboardInterrupt so calling code knows it was interrupted
+            if plot_data_list:
+                final_stats = plot_data_list[-1].stats
+                logger.info(f"Final: {final_stats}")
+            raise KeyboardInterrupt("Evolution interrupted by user")
+        else:
+            logger.info("Evolution complete!")
+
+        if plot_data_list:
+            final_stats = plot_data_list[-1].stats
+            logger.info(f"Final: {final_stats}")
             logger.info(f"Evolution completed successfully: {final_stats}")
 
-        return generation_stats
+        return plot_data_list
 
     def get_genome_diversity(self) -> dict[str, float]:
         """
@@ -349,6 +490,15 @@ class Population:
             Dictionary with diversity statistics
         """
         return StatsCalculator.calculate_diversity_metrics(self.genomes)
+
+    def get_genome_lengths(self) -> list[int]:
+        """
+        Get the lengths of all genomes in the population.
+
+        Returns:
+            List of genome lengths
+        """
+        return [len(genome) for genome in self.genomes]
 
     def get_evolution_summary(self) -> dict[str, Any]:
         """Get a summary of the evolution history."""

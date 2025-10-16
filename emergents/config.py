@@ -23,10 +23,17 @@ class GenomeConfig:
     """Configuration for genome initialization."""
 
     initial_length: int = 100
-    num_coding_segments: int = 2
-    coding_segment_length: int = 25
-    non_coding_segment_length: int = 25
+    num_coding_segments: int = 5
+    # coding_segment_length: list[int] = field(
+    #     default_factory=lambda: [10, 10, 10, 10, 10]
+    # )
+    # non_coding_segment_length: list[int] = field(
+    #     default_factory=lambda: [5, 10, 10, 10, 10, 5]
+    # )
+    coding_segment_length: int = 10
+    non_coding_segment_length: int = 10
     promoter_direction: PromoterDirection = PromoterDirection.FORWARD
+    # is_circular: bool = False
     is_circular: bool = True
     nature_of_extremities: str = "NC--NC"
 
@@ -36,10 +43,10 @@ class GenomeConfig:
             raise ValueError("Initial length must be positive")
         if self.num_coding_segments < 0:
             raise ValueError("Number of coding segments cannot be negative")
-        if self.coding_segment_length <= 0:
-            raise ValueError("Coding segment length must be positive")
-        if self.non_coding_segment_length <= 0:
-            raise ValueError("Non-coding segment length must be positive")
+        # if self.coding_segment_length <= 0:
+        #     raise ValueError("Coding segment length must be positive")
+        # if self.non_coding_segment_length <= 0:
+        #     raise ValueError("Non-coding segment length must be positive")
 
 
 @dataclass
@@ -47,7 +54,7 @@ class PopulationConfig:
     """Configuration for population parameters."""
 
     size: int = 100
-    mutation_rate: float = 1e-3
+    mutation_rate: float = 3e-2
     random_seed: Optional[int] = None
 
     def __post_init__(self) -> None:
@@ -62,10 +69,11 @@ class PopulationConfig:
 class EvolutionConfig:
     """Configuration for evolution simulation."""
 
-    num_generations: int = 10000
-    report_interval: int = 1000
+    num_generations: int = 1000
+    report_interval: int = 50
     enable_progress_bar: bool = True
     enable_plotting: bool = True
+    plot_filename: str = "evolution_progress.png"  # Filename for saved plots
 
     def __post_init__(self) -> None:
         """Validate configuration after initialization."""
@@ -124,19 +132,6 @@ class SimulationConfig:
     def create_default(cls) -> "SimulationConfig":
         """Create a configuration with all default values."""
         return cls()
-
-    @classmethod
-    def create_fast_test(cls) -> "SimulationConfig":
-        """Create a configuration optimized for fast testing."""
-        return cls(
-            population=PopulationConfig(size=50, mutation_rate=0.1),
-            evolution=EvolutionConfig(
-                num_generations=100,
-                report_interval=50,
-                enable_progress_bar=False,
-                enable_plotting=False,
-            ),
-        )
 
     def validate_all(self) -> None:
         """Validate all configuration components."""

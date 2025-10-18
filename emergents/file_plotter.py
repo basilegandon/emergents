@@ -91,12 +91,14 @@ class MultiprocessFilePlotter:
             self.plot_process.start()
             self.is_active = True
 
-            logger.info(
+            logger.debug(
                 "Multiprocess file plotter initialized - plots will be saved to '%s'",
                 self.filename,
             )
             if self.save_history:
-                logger.info("Historical plots will be saved to '%s/'", self.history_dir)
+                logger.debug(
+                    "Historical plots will be saved to '%s/'", self.history_dir
+                )
 
         except Exception as e:
             logger.error("Failed to initialize multiprocess file plotter: %s", e)
@@ -158,13 +160,11 @@ class MultiprocessFilePlotter:
             if self.plot_process and self.plot_process.is_alive():
                 self.plot_process.join(timeout=3.0)
                 if self.plot_process.is_alive():
-                    logger.warning("Forcefully terminating plot process")
+                    logger.debug("Forcefully terminating plot process")
                     self.plot_process.terminate()
                     self.plot_process.join(timeout=2.0)
                     if self.plot_process.is_alive():
-                        logger.warning(
-                            "Process still alive after terminate, using kill"
-                        )
+                        logger.debug("Process still alive after terminate, using kill")
                         try:
                             import os
 
@@ -177,7 +177,7 @@ class MultiprocessFilePlotter:
                         except Exception as e:
                             logger.error("Failed to kill plot process: %s", e)
                 else:
-                    logger.info(
+                    logger.debug(
                         "Multiprocess file plotter process terminated gracefully"
                     )
 
@@ -240,7 +240,7 @@ class MultiprocessFilePlotter:
             plot_counter = 0
             history_path = Path(history_dir) if save_history else None
 
-            logger.info("Multiprocess file plot worker started")
+            logger.debug("Multiprocess file plot worker started")
 
             while True:
                 try:
@@ -438,7 +438,7 @@ class MultiprocessFilePlotter:
                         if (
                             plot_counter % 10 == 0
                         ):  # Log every 10th update to avoid spam
-                            logger.info(
+                            logger.debug(
                                 "Multiprocess plot updated and saved (Generation %d, Update #%d)",
                                 generation,
                                 plot_counter,
@@ -449,7 +449,7 @@ class MultiprocessFilePlotter:
                         time.sleep(0.05)
 
                 except KeyboardInterrupt:
-                    logger.warning("KeyboardInterrupt received in plot worker")
+                    logger.debug("KeyboardInterrupt received in plot worker")
                     break
                 except Exception as e:
                     logger.error("Error in multiprocess plot worker: %s", e)
@@ -464,4 +464,4 @@ class MultiprocessFilePlotter:
                 plt.close("all")
             except Exception as e:
                 logger.error("Error closing plots: %s", e)
-            logger.info("Multiprocess file plot worker stopped")
+            logger.debug("Multiprocess file plot worker stopped")

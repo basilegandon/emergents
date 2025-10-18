@@ -194,7 +194,7 @@ class Population:
     def update_mutation_config(self, config: MutationConfig) -> None:
         """Update mutation configuration."""
         self.mutation_manager.update_config(config)
-        logger.info("Updated mutation configuration")
+        logger.debug("Updated mutation configuration")
 
     def apply_mutations(self) -> tuple[MutationCounts, list[int]]:
         """
@@ -321,11 +321,11 @@ class Population:
 
         if plot_update_interval:
             logger.info(
-                "File-based plotting enabled (save to '%s' every %d generations)",
+                "Plotting enabled - saving to '%s' every %d generations",
                 plot_filename,
                 plot_update_interval,
             )
-            logger.info("Press Ctrl+C to interrupt and save all data...")
+            logger.info("Press Ctrl+C to interrupt and save data")
         logger.info("-" * 60)
 
         plot_data_list: list[PlotData] = []  # For enhanced plotting with genome lengths
@@ -353,10 +353,7 @@ class Population:
         def signal_handler(signum: int, frame: Optional[FrameType]) -> None:
             nonlocal interrupted
             interrupted = True
-            logger.warning(
-                f"Keyboard interrupt received at generation {len(plot_data_list)}!"
-            )
-            logger.warning("Current data will be preserved.")
+            logger.info("Evolution interrupted at generation %d", len(plot_data_list))
             if plotter:
                 try:
                     # Only update the plotter with current data, don't close here
@@ -407,54 +404,56 @@ class Population:
             except Exception as e:
                 logger.warning("Error restoring signal handler: %s", e)
 
-            logger.info("Evolution run ended, finalizing...")
+            logger.debug("Evolution run ended, finalizing...")
 
             # Close progress bar explicitly
             if progress_bar:
                 try:
-                    logger.info("Closing progress bar...")
+                    logger.debug("Closing progress bar...")
                     progress_bar.close()
-                    logger.info("Progress bar closed")
+                    logger.debug("Progress bar closed")
                 except Exception as e:
                     logger.warning("Error closing progress bar: %s", e)
 
             # Close plotter if it was created
             if plotter:
                 try:
-                    logger.info("Closing plotter...")
+                    logger.debug("Closing plotter...")
                     plotter.close()
-                    logger.info("Plotter closed successfully")
+                    logger.debug("Plotter closed successfully")
                 except Exception as e:
                     logger.warning("Error closing plotter: %s", e)
 
             # Force cleanup of all multiprocessing resources more aggressively
-            logger.info("Cleaning up multiprocessing resources...")
+            logger.debug("Cleaning up multiprocessing resources...")
             import multiprocessing as mp
             import time
 
             try:
                 active_children = mp.active_children()
-                logger.info("Found %d active child processes", len(active_children))
+                logger.debug("Found %d active child processes", len(active_children))
 
                 for p in active_children:
                     if p.is_alive():
-                        logger.info("Terminating process %s (PID: %s)", p.name, p.pid)
+                        logger.debug("Terminating process %s (PID: %s)", p.name, p.pid)
                         p.terminate()
                         p.join(timeout=1.0)
 
                         if p.is_alive():
-                            logger.warning("Force killing process %s", p.name)
+                            logger.debug("Force killing process %s", p.name)
                             try:
                                 import os
 
                                 if hasattr(os, "kill") and p.pid:
                                     os.kill(p.pid, 9)
                             except Exception as e:
-                                logger.error("Failed to kill process %s: %s", p.name, e)
+                                logger.warning(
+                                    "Failed to kill process %s: %s", p.name, e
+                                )
 
                 # Force cleanup of any remaining resources
                 time.sleep(0.1)  # Small delay to allow cleanup
-                logger.info("Multiprocessing cleanup completed")
+                logger.debug("Multiprocessing cleanup completed")
 
             except Exception as e:
                 logger.warning("Error cleaning up multiprocessing resources: %s", e)
@@ -469,8 +468,10 @@ class Population:
 
         logger.info("-" * 60)
         if interrupted:
-            logger.info("Evolution interrupted at generation %d!", len(plot_data_list))
-            logger.info("All data up to interruption has been preserved.")
+            logger.info(
+                "Evolution interrupted! Data saved up to generation %d",
+                len(plot_data_list),
+            )
 
             # After cleanup is complete, re-raise KeyboardInterrupt so calling code knows it was interrupted
             if plot_data_list:
@@ -483,7 +484,6 @@ class Population:
         if plot_data_list:
             final_stats = plot_data_list[-1].stats
             logger.info("Final: %s", final_stats)
-            logger.info("Evolution completed successfully: %s", final_stats)
 
         return plot_data_list
 

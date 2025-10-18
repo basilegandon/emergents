@@ -20,25 +20,25 @@ def cleanup_resources() -> None:
         import matplotlib.pyplot as plt
 
         plt.close("all")
-        plt.ioff()  # Turn off interactive mode
+        plt.ioff()  # type: ignore # Turn off interactive mode
 
         # Clean up any remaining multiprocessing resources
         import multiprocessing as mp
 
         for p in mp.active_children():
             if p.is_alive():
-                logger.warning("Terminating remaining process: %s", p.name)
+                logger.debug("Terminating remaining process: %s", p.name)
                 p.terminate()
                 p.join(timeout=2.0)
                 if p.is_alive():
-                    logger.error("Failed to terminate process: %s", p.name)
+                    logger.warning("Failed to terminate process: %s", p.name)
 
         # Force garbage collection
         import gc
 
         gc.collect()
 
-        logger.info("Resource cleanup completed")
+        logger.debug("Resource cleanup completed")
 
     except Exception as e:
         logger.warning("Error during resource cleanup: %s", e)
@@ -46,7 +46,7 @@ def cleanup_resources() -> None:
 
 def run() -> None:
     """Run with configuration management."""
-    logger.info("Starting evolution simulation run")
+    logger.debug("Starting evolution simulation run")
 
     try:
         # Create configuration
@@ -76,7 +76,7 @@ def run() -> None:
             is_circular=config.genome.is_circular,
         )
 
-        logger.info("Initialized population with %d genomes", len(population.genomes))
+        logger.debug("Initialized population with %d genomes", len(population.genomes))
 
         # Run evolution with plotting if enabled
         evolution_stats: list[PlotData] = population.evolve(
@@ -93,12 +93,10 @@ def run() -> None:
         # Display final results
         if evolution_stats:
             final_stats: PopulationStats = evolution_stats[-1].stats
-            logger.info("Final results: %s", final_stats)
+            logger.info("Evolution completed: %s", final_stats)
 
             diversity = population.get_genome_diversity()
             logger.info("Final diversity: %.3f", diversity["length_diversity"])
-
-        logger.info("Comprehensive demonstration completed successfully")
 
     except Exception as e:
         logger.error("Error in comprehensive demo: %s", e)
@@ -108,16 +106,16 @@ def run() -> None:
 def main() -> None:
     """Main entry point with comprehensive error handling."""
     try:
-        logger.info("Application started")
+        logger.info("Starting evolution simulation")
 
         run()
 
-        logger.info("Application completed successfully")
+        logger.info("Evolution simulation completed")
 
     except KeyboardInterrupt:
-        logger.info("Application interrupted by user")
+        logger.info("Simulation interrupted by user")
     except Exception as e:
-        logger.error("Unexpected error: %s", e)
+        logger.error("Simulation failed: %s", e)
         sys.exit(1)
     finally:
         # Ensure complete cleanup of all resources
@@ -126,4 +124,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-    logger.info("Program exited cleanly")

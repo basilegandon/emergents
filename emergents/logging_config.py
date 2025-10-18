@@ -34,26 +34,27 @@ class CustomRichHandler(RichHandler):
             keyword in lower_message
             for keyword in ["save", "saved", "saving", "export", "exported"]
         ):
-            message_text.stylize("dim cyan")
+            message_text.stylize("cyan")
         elif any(
             keyword in lower_message
-            for keyword in ["scenario", "configuration", "config"]
-        ):
-            message_text.stylize("bold green")
-        elif any(
-            keyword in lower_message
-            for keyword in ["execution", "running", "processing"]
+            for keyword in ["evolution", "simulation", "generation"]
         ):
             message_text.stylize("bold blue")
         elif any(
-            keyword in lower_message for keyword in ["complete", "finished", "done"]
+            keyword in lower_message
+            for keyword in ["complete", "completed", "finished", "done"]
         ):
             message_text.stylize("bold green")
         elif any(
             keyword in lower_message
-            for keyword in ["starting", "initializing", "beginning"]
+            for keyword in ["starting", "started", "initializing", "beginning"]
         ):
             message_text.stylize("bold cyan")
+        elif any(
+            keyword in lower_message
+            for keyword in ["interrupted", "interrupt", "stopped"]
+        ):
+            message_text.stylize("bold yellow")
 
         return message_text
 
@@ -234,7 +235,7 @@ def configure_for_testing() -> None:
 def configure_for_development() -> None:
     """Configure logging for development environments."""
     setup_logging(
-        level=logging.DEBUG,
+        level=logging.INFO,  # Changed from DEBUG to reduce verbosity
         enable_file_logging=True,
         enable_console_logging=True,
         use_rich=True,

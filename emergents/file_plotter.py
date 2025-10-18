@@ -7,7 +7,6 @@ with interactive matplotlib windows becoming unresponsive.
 
 from __future__ import annotations
 
-import logging
 import multiprocessing as mp
 import queue
 import time
@@ -19,9 +18,10 @@ import matplotlib
 
 matplotlib.use("Agg")  # Use non-interactive backend
 
+from emergents.logging_config import get_logger  # noqa: E402
 from emergents.statistics import PopulationStats  # noqa: E402
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -92,13 +92,14 @@ class MultiprocessFilePlotter:
             self.is_active = True
 
             logger.info(
-                f"Multiprocess file plotter initialized - plots will be saved to '{self.filename}'"
+                "Multiprocess file plotter initialized - plots will be saved to '%s'",
+                self.filename,
             )
             if self.save_history:
-                logger.info(f"Historical plots will be saved to '{self.history_dir}/'")
+                logger.info("Historical plots will be saved to '%s/'", self.history_dir)
 
         except Exception as e:
-            logger.error(f"Failed to initialize multiprocess file plotter: {e}")
+            logger.error("Failed to initialize multiprocess file plotter: %s", e)
             self.close()
 
     def update(self, data: list[PlotData]) -> None:
@@ -135,7 +136,7 @@ class MultiprocessFilePlotter:
                     pass
 
         except Exception as e:
-            logger.warning(f"Error sending data to multiprocess plotter: {e}")
+            logger.warning("Error sending data to multiprocess plotter: %s", e)
 
     def close(self) -> None:
         """Close the plotting process safely (idempotent)."""
@@ -151,7 +152,7 @@ class MultiprocessFilePlotter:
                 try:
                     self.control_queue.put("STOP")
                 except Exception as e:
-                    logger.warning(f"Error sending STOP signal: {e}")
+                    logger.warning("Error sending STOP signal: %s", e)
 
             # Wait for process to finish gracefully, then force terminate if needed
             if self.plot_process and self.plot_process.is_alive():
@@ -174,14 +175,14 @@ class MultiprocessFilePlotter:
                                 )  # SIGKILL on Unix, forceful termination on Windows
                             self.plot_process.join(timeout=1.0)
                         except Exception as e:
-                            logger.error(f"Failed to kill plot process: {e}")
+                            logger.error("Failed to kill plot process: %s", e)
                 else:
                     logger.info(
                         "Multiprocess file plotter process terminated gracefully"
                     )
 
         except Exception as e:
-            logger.error(f"Error closing multiprocess file plotter: {e}")
+            logger.error("Error closing multiprocess file plotter: %s", e)
         finally:
             # Close and clean up queues explicitly (without blocking)
             if self.data_queue:
@@ -195,7 +196,7 @@ class MultiprocessFilePlotter:
                     self.data_queue.close()
                     # Don't call join_thread() as it can hang
                 except Exception as e:
-                    logger.warning(f"Error closing data queue: {e}")
+                    logger.warning("Error closing data queue: %s", e)
 
             if self.control_queue:
                 try:
@@ -208,7 +209,7 @@ class MultiprocessFilePlotter:
                     self.control_queue.close()
                     # Don't call join_thread() as it can hang
                 except Exception as e:
-                    logger.warning(f"Error closing control queue: {e}")
+                    logger.warning("Error closing control queue: %s", e)
 
             # Clean up references
             self.plot_process = None
@@ -438,7 +439,9 @@ class MultiprocessFilePlotter:
                             plot_counter % 10 == 0
                         ):  # Log every 10th update to avoid spam
                             logger.info(
-                                f"Multiprocess plot updated and saved (Generation {generation}, Update #{plot_counter})"
+                                "Multiprocess plot updated and saved (Generation %d, Update #%d)",
+                                generation,
+                                plot_counter,
                             )
 
                     except queue.Empty:
@@ -449,16 +452,16 @@ class MultiprocessFilePlotter:
                     logger.warning("KeyboardInterrupt received in plot worker")
                     break
                 except Exception as e:
-                    logger.error(f"Error in multiprocess plot worker: {e}")
+                    logger.error("Error in multiprocess plot worker: %s", e)
                     break
 
         except Exception as e:
-            logger.error(f"Fatal error in multiprocess plot worker: {e}")
+            logger.error("Fatal error in multiprocess plot worker: %s", e)
         finally:
             try:
                 import matplotlib.pyplot as plt
 
                 plt.close("all")
             except Exception as e:
-                logger.error(f"Error closing plots: {e}")
+                logger.error("Error closing plots: %s", e)
             logger.info("Multiprocess file plot worker stopped")

@@ -1,128 +1,16 @@
 """
-Evolution simulation demonstrating optimized population dynamics.
-
-This module showcases the new evolution engine with clean architecture,
-efficient algorithms, and comprehensive analysis tools.
+Evolution simulation demonstrating population dynamics.
 """
 
-import logging
 import sys
-
-import matplotlib.pyplot as plt
 
 from emergents.config import SimulationConfig
 from emergents.file_plotter import PlotData
-from emergents.genome.segments import PromoterDirection
+from emergents.logging_config import get_logger
 from emergents.population import Population, PopulationStats
 
-# import rich
-
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler("evolution_simulation.log"),
-    ],
-)
-logger = logging.getLogger(__name__)
-
-
-def demo_population_evolution() -> None:
-    """Demo the new population evolution system with comprehensive error handling."""
-    logger.info("Starting population evolution demonstration")
-
-    try:
-        print("\n=== Population Evolution Demo ===")
-
-        # Create a population with validated parameters
-        population = Population(population_size=100, mutation_rate=1e-3, random_seed=42)
-
-        # Initialize population to a copied single genome
-        initial_genome_length = 100
-        nb_coding_segments = 2
-        length_coding_segments = 25
-        length_non_coding_segments = 25
-        promoter_directions = PromoterDirection.FORWARD
-
-        population.initialize_population(
-            initial_genome_length=initial_genome_length,
-            nb_coding_segments=nb_coding_segments,
-            length_coding_segments=length_coding_segments,
-            length_non_coding_segments=length_non_coding_segments,
-            promoter_directions=promoter_directions,
-            is_circular=True,
-        )
-
-        print(f"Created population with {len(population.genomes)} genomes")
-        logger.info(f"Initialized population with {len(population.genomes)} genomes")
-
-        # Show initial stats
-        initial_stats = population.get_population_stats(
-            current_pop_size=len(population.genomes)
-        )
-        print(f"Initial stats: {initial_stats}")
-
-        # Run evolution for a few generations
-        print("\nRunning evolution...")
-        evolution_stats: list[PopulationStats] = population.evolve(
-            num_generations=10000, report_every=1000
-        )
-
-        # Show final diversity
-        diversity = population.get_genome_diversity()
-        print("\nFinal diversity metrics:")
-        print(f"  Length diversity: {diversity['length_diversity']:.3f}")
-        print(f"  Length std dev: {diversity['length_std']:.1f}")
-
-        # Plot results if matplotlib is available
-        try:
-            plot_evolution_results(evolution_stats)
-        except ImportError:
-            logger.warning("Matplotlib not available, skipping plots")
-        except Exception as e:
-            logger.error(f"Error creating plots: {e}")
-
-        logger.info("Population evolution demonstration completed successfully")
-
-    except Exception as e:
-        logger.error(f"Error in population evolution demo: {e}")
-        raise
-
-
-def plot_evolution_results(stats: list[PopulationStats]) -> None:
-    """Create plots showing evolution results."""
-    try:
-        avg_lengths = [stat.avg_genome_length for stat in stats]
-        generations = list(range(len(avg_lengths)))
-
-        plt.figure(figsize=(10, 6))
-        plt.plot(generations, avg_lengths, marker="o", markersize=3, linewidth=1)
-        plt.title("Average Genome Length Over Generations")
-        plt.xlabel("Generation")
-        plt.ylabel("Average Genome Length")
-        plt.grid(True, alpha=0.3)
-
-        # Add some styling
-        plt.tight_layout()
-
-        # Try to save instead
-        plt.savefig("evolution_results.png", dpi=150, bbox_inches="tight")
-        logger.info("Plot saved as 'evolution_results.png'")
-
-        # Important: Close the figure to free resources and prevent hanging
-        plt.close("all")
-
-    except Exception as e:
-        logger.error(f"Error in plotting: {e}")
-    finally:
-        # Ensure matplotlib is properly cleaned up
-        try:
-            plt.close("all")
-        except Exception as e:
-            logger.error(f"Error closing plots: {e}")
+# Get logger using the centralized logging configuration
+logger = get_logger(__name__)
 
 
 def cleanup_resources() -> None:
@@ -139,11 +27,11 @@ def cleanup_resources() -> None:
 
         for p in mp.active_children():
             if p.is_alive():
-                logger.warning(f"Terminating remaining process: {p.name}")
+                logger.warning("Terminating remaining process: %s", p.name)
                 p.terminate()
                 p.join(timeout=2.0)
                 if p.is_alive():
-                    logger.error(f"Failed to terminate process: {p.name}")
+                    logger.error("Failed to terminate process: %s", p.name)
 
         # Force garbage collection
         import gc
@@ -153,7 +41,7 @@ def cleanup_resources() -> None:
         logger.info("Resource cleanup completed")
 
     except Exception as e:
-        logger.warning(f"Error during resource cleanup: {e}")
+        logger.warning("Error during resource cleanup: %s", e)
 
 
 def run() -> None:
@@ -166,8 +54,9 @@ def run() -> None:
 
         logger.info("\n=== Evolution Simulation ===")
         logger.info(
-            f"Configuration: {config.population.size} genomes, "
-            f"{config.evolution.num_generations} generations"
+            "Configuration: %d genomes, %d generations",
+            config.population.size,
+            config.evolution.num_generations,
         )
 
         # Create and configure population
@@ -187,7 +76,7 @@ def run() -> None:
             is_circular=config.genome.is_circular,
         )
 
-        logger.info(f"Initialized population with {len(population.genomes)} genomes")
+        logger.info("Initialized population with %d genomes", len(population.genomes))
 
         # Run evolution with plotting if enabled
         evolution_stats: list[PlotData] = population.evolve(
@@ -204,20 +93,15 @@ def run() -> None:
         # Display final results
         if evolution_stats:
             final_stats: PopulationStats = evolution_stats[-1].stats
-            logger.info(f"Final results: {final_stats}")
+            logger.info("Final results: %s", final_stats)
 
             diversity = population.get_genome_diversity()
-            logger.info(f"Final diversity: {diversity['length_diversity']:.3f}")
-
-            if config.evolution.enable_plotting:
-                plot_evolution_results(
-                    [plot_data.stats for plot_data in evolution_stats]
-                )
+            logger.info("Final diversity: %.3f", diversity["length_diversity"])
 
         logger.info("Comprehensive demonstration completed successfully")
 
     except Exception as e:
-        logger.error(f"Error in comprehensive demo: {e}")
+        logger.error("Error in comprehensive demo: %s", e)
         raise
 
 
@@ -233,7 +117,7 @@ def main() -> None:
     except KeyboardInterrupt:
         logger.info("Application interrupted by user")
     except Exception as e:
-        logger.error(f"Unexpected error: {e}")
+        logger.error("Unexpected error: %s", e)
         sys.exit(1)
     finally:
         # Ensure complete cleanup of all resources
@@ -242,3 +126,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+    logger.info("Program exited cleanly")

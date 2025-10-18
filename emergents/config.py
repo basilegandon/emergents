@@ -22,16 +22,16 @@ from emergents.mutations.small_insertion import SmallInsertion
 class GenomeConfig:
     """Configuration for genome initialization."""
 
-    initial_length: int = 100
-    num_coding_segments: int = 5
+    initial_length: int = 10000
+    num_coding_segments: int = 10
     # coding_segment_length: list[int] = field(
     #     default_factory=lambda: [10, 10, 10, 10, 10]
     # )
     # non_coding_segment_length: list[int] = field(
     #     default_factory=lambda: [5, 10, 10, 10, 10, 5]
     # )
-    coding_segment_length: int = 10
-    non_coding_segment_length: int = 10
+    coding_segment_length: int = 100
+    non_coding_segment_length: int = 900
     promoter_direction: PromoterDirection = PromoterDirection.FORWARD
     # is_circular: bool = False
     is_circular: bool = True
@@ -53,8 +53,8 @@ class GenomeConfig:
 class PopulationConfig:
     """Configuration for population parameters."""
 
-    size: int = 100
-    mutation_rate: float = 3e-2
+    size: int = 10000
+    mutation_rate: float = 1e-4
     random_seed: Optional[int] = None
 
     def __post_init__(self) -> None:
@@ -70,7 +70,7 @@ class EvolutionConfig:
     """Configuration for evolution simulation."""
 
     num_generations: int = 1000
-    report_interval: int = 50
+    report_interval: int = 10
     enable_progress_bar: bool = True
     enable_plotting: bool = True
     plot_filename: str = "evolution_progress.png"  # Filename for saved plots
@@ -99,7 +99,7 @@ class MutationConfig:
     )
 
     # Mutation-specific parameters
-    small_mutation_max_size: int = 10
+    small_mutation_max_size: int = 6
 
     def __post_init__(self) -> None:
         """Validate and normalize mutation weights."""

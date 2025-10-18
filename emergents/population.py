@@ -6,7 +6,6 @@ of concerns, efficient algorithms, and comprehensive analysis capabilities.
 """
 
 import copy
-import logging
 import random
 import signal
 from types import FrameType
@@ -23,6 +22,7 @@ from emergents.genome.segments import (
     PromoterDirection,
     Segment,
 )
+from emergents.logging_config import get_logger
 from emergents.mutation_manager import MutationManager
 from emergents.statistics import (
     MutationCounts,
@@ -31,7 +31,7 @@ from emergents.statistics import (
     StatsTracker,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 # PopulationStats class moved to emergents.statistics module
@@ -83,8 +83,10 @@ class Population:
         self.stats_tracker = StatsTracker()
 
         logger.info(
-            f"Initialized population: size={population_size}, "
-            f"mutation_rate={mutation_rate}, seed={random_seed}"
+            "Initialized population: size=%d, mutation_rate=%g, seed=%s",
+            population_size,
+            mutation_rate,
+            random_seed,
         )
 
     @staticmethod
@@ -311,14 +313,17 @@ class Population:
             raise ValueError("Number of generations must be positive")
 
         logger.info(
-            f"Starting evolution: {num_generations} generations, "
-            f"population_size={len(self.genomes)}, "
-            f"mutation_rate={self.mutation_rate}"
+            "Starting evolution: %d generations, population_size=%d, mutation_rate=%g",
+            num_generations,
+            len(self.genomes),
+            self.mutation_rate,
         )
 
         if plot_update_interval:
             logger.info(
-                f"File-based plotting enabled (save to '{plot_filename}' every {plot_update_interval} generations)"
+                "File-based plotting enabled (save to '%s' every %d generations)",
+                plot_filename,
+                plot_update_interval,
             )
             logger.info("Press Ctrl+C to interrupt and save all data...")
         logger.info("-" * 60)
@@ -342,7 +347,7 @@ class Population:
                 if plotter:
                     plotter.initialize()
             except Exception as e:
-                logger.warning(f"Failed to initialize plotter: {e}")
+                logger.warning("Failed to initialize plotter: %s", e)
                 plotter = None
 
         def signal_handler(signum: int, frame: Optional[FrameType]) -> None:
@@ -358,7 +363,7 @@ class Population:
                     # The finally block will handle closing properly
                     plotter.update(plot_data_list)
                 except Exception as e:
-                    logger.warning(f"Error updating plotter on interrupt: {e}")
+                    logger.warning("Error updating plotter on interrupt: %s", e)
 
         # Set up keyboard interrupt handler
         original_handler = signal.signal(signal.SIGINT, signal_handler)
@@ -383,24 +388,24 @@ class Population:
                 )
 
                 if report_every > 0 and gen % report_every == 0:
-                    logger.info(f"{stats}")
+                    logger.info("%s", stats)
 
                 # Update real-time plot if enabled
                 if plotter and plot_update_interval and gen % plot_update_interval == 0:
                     plotter.update(plot_data_list)
 
         except RuntimeError as e:
-            logger.error(f"Evolution failed at generation {self.generation}: {e}")
+            logger.error("Evolution failed at generation %d: %s", self.generation, e)
             raise
         except Exception as e:
-            logger.error(f"Unexpected error during evolution: {e}")
+            logger.error("Unexpected error during evolution: %s", e)
             raise
         finally:
             # Restore original signal handler first
             try:
                 signal.signal(signal.SIGINT, original_handler)
             except Exception as e:
-                logger.warning(f"Error restoring signal handler: {e}")
+                logger.warning("Error restoring signal handler: %s", e)
 
             logger.info("Evolution run ended, finalizing...")
 
@@ -411,7 +416,7 @@ class Population:
                     progress_bar.close()
                     logger.info("Progress bar closed")
                 except Exception as e:
-                    logger.warning(f"Error closing progress bar: {e}")
+                    logger.warning("Error closing progress bar: %s", e)
 
             # Close plotter if it was created
             if plotter:
@@ -420,7 +425,7 @@ class Population:
                     plotter.close()
                     logger.info("Plotter closed successfully")
                 except Exception as e:
-                    logger.warning(f"Error closing plotter: {e}")
+                    logger.warning("Error closing plotter: %s", e)
 
             # Force cleanup of all multiprocessing resources more aggressively
             logger.info("Cleaning up multiprocessing resources...")
@@ -429,30 +434,30 @@ class Population:
 
             try:
                 active_children = mp.active_children()
-                logger.info(f"Found {len(active_children)} active child processes")
+                logger.info("Found %d active child processes", len(active_children))
 
                 for p in active_children:
                     if p.is_alive():
-                        logger.info(f"Terminating process {p.name} (PID: {p.pid})")
+                        logger.info("Terminating process %s (PID: %s)", p.name, p.pid)
                         p.terminate()
                         p.join(timeout=1.0)
 
                         if p.is_alive():
-                            logger.warning(f"Force killing process {p.name}")
+                            logger.warning("Force killing process %s", p.name)
                             try:
                                 import os
 
                                 if hasattr(os, "kill") and p.pid:
                                     os.kill(p.pid, 9)
                             except Exception as e:
-                                logger.error(f"Failed to kill process {p.name}: {e}")
+                                logger.error("Failed to kill process %s: %s", p.name, e)
 
                 # Force cleanup of any remaining resources
                 time.sleep(0.1)  # Small delay to allow cleanup
                 logger.info("Multiprocessing cleanup completed")
 
             except Exception as e:
-                logger.warning(f"Error cleaning up multiprocessing resources: {e}")
+                logger.warning("Error cleaning up multiprocessing resources: %s", e)
 
             # Additional cleanup for potential hanging resources
             try:
@@ -460,25 +465,25 @@ class Population:
 
                 gc.collect()  # Force garbage collection
             except Exception as e:
-                logger.warning(f"Error during garbage collection: {e}")
+                logger.warning("Error during garbage collection: %s", e)
 
         logger.info("-" * 60)
         if interrupted:
-            logger.info(f"Evolution interrupted at generation {len(plot_data_list)}!")
+            logger.info("Evolution interrupted at generation %d!", len(plot_data_list))
             logger.info("All data up to interruption has been preserved.")
 
             # After cleanup is complete, re-raise KeyboardInterrupt so calling code knows it was interrupted
             if plot_data_list:
                 final_stats = plot_data_list[-1].stats
-                logger.info(f"Final: {final_stats}")
+                logger.info("Final: %s", final_stats)
             raise KeyboardInterrupt("Evolution interrupted by user")
         else:
             logger.info("Evolution complete!")
 
         if plot_data_list:
             final_stats = plot_data_list[-1].stats
-            logger.info(f"Final: {final_stats}")
-            logger.info(f"Evolution completed successfully: {final_stats}")
+            logger.info("Final: %s", final_stats)
+            logger.info("Evolution completed successfully: %s", final_stats)
 
         return plot_data_list
 

@@ -1,2 +1,4 @@
-# Add any runtime dependencies here
-# Currently no external dependencies needed
+# Runtime dependencies
+rich>=13.0.0  # For enhanced console logging with colors and formatting
+numpy>=2.3.3
+matplotlib>=3.10.6

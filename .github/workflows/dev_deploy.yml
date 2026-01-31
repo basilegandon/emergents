@@ -58,7 +58,6 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: staging # Tracks deployments in GitHub UI
-      url: https://staging.myapp.com
 
     steps:
       - name: Deploy to Staging Server

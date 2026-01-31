@@ -11,3 +11,36 @@ dev = [
     "pre-commit>=4.5.1",
     "ruff>=0.14.14",
 ]
+
+[tool.ruff]
+target-version = "py314"
+line-length = 88
+
+[tool.ruff.lint]
+# E/F: Standard Flake8 rules (syntax errors, undefined variables)
+# I:   Isort (import sorting)
+# B:   Flake8-Bugbear (catches subtle bugs & design flaws - HIGH VALUE)
+# UP:  PyUpgrade (automatically upgrades syntax to newer Python versions)
+# N:   PEP8 Naming (function/class naming conventions)
+# SIM: Flake8-Simplify (suggests cleaner syntax)
+# C4:  Flake8-Comprehensions (optimizes list/dict comprehensions)
+# PT:  Flake8-Pytest-Style (enforces better pytest practices)
+select = ["E", "F", "I", "B", "UP", "N", "SIM", "C4", "PT"]
+
+# Allow fixing these specific rules automatically
+fixable = ["ALL"]
+
+# Ignore specific rules that might be too noisy for your specific team style
+# E501: Line too long (Ruff's formatter handles this well usually, strict linting is annoying)
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+# Ensure imports are grouped correctly (Standard Lib -> Third Party -> Local)
+combine-as-imports = true
+known-first-party = ["emergents"] # CHANGE THIS to your package name
+
+[tool.ruff.format]
+# Use double quotes for strings (standard)
+quote-style = "double"
+# Indent with spaces, not tabs
+indent-style = "space"

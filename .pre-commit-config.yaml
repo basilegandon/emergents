@@ -18,7 +18,7 @@ repos:
 
   # [Example] If you use Python (Ruff is the modern standard replacing Flake8/Black)
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.0
+    rev: v0.3.4
     hooks:
       - id: ruff
         args: [--fix]

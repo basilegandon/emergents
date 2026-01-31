@@ -9,6 +9,10 @@ dependencies = []
 [dependency-groups]
 dev = [
     "pre-commit>=4.5.1",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "pytest-mock>=3.15.1",
+    "pytest-xdist>=3.8.0",
     "ruff>=0.14.14",
 ]
 
@@ -44,3 +48,35 @@ known-first-party = ["emergents"] # CHANGE THIS to your package name
 quote-style = "double"
 # Indent with spaces, not tabs
 indent-style = "space"
+
+[tool.pytest.ini_options]
+# Min version to ensure modern features
+minversion = "8.0"
+
+# CLI Options:
+# -ra: Show extra test summary info for (r)skipped, (f)ailed, (E)rror
+# -q: Quiet mode (less noise)
+# --strict-markers: error if you use an unregistered marker (prevents typos)
+# --cov: Enable coverage by default
+# -n auto: Use all available CPU cores (pytest-xdist)
+addopts = "-ra -q --strict-markers --cov=src --cov-report=xml --cov-report=term-missing -n auto"
+
+# Where to look for tests
+testpaths = ["tests"]
+
+# Define custom markers here to avoid "unknown marker" warnings
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests requiring external services",
+]
+
+# Fail if coverage drops below 90%
+[tool.coverage.report]
+fail_under = 90
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]

@@ -1,0 +1,6 @@
+version: 2
+updates:
+  - package-ecosystem: "pip" # uv is compatible with pip ecosystem
+    directory: "/"
+    schedule:
+      interval: "weekly"

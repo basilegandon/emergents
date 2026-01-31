@@ -1,0 +1,34 @@
+name: CD (Release)
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+  # IMPORTANT: Required for Trusted Publishing to PyPI (no API tokens needed)
+  id-token: write
+
+jobs:
+  build-and-publish:
+    name: Build & Publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python 3.14
+        run: uv python install 3.14
+
+      - name: Build Package
+        run: uv build
+
+      - name: Publish to PyPI
+        # Uses OIDC (Trusted Publishing) - cleaner than secrets
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          # Remove this line if publishing to real PyPI
+          repository-url: https://test.pypi.org/legacy/

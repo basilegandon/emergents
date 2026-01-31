@@ -1,0 +1,70 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches:
+      - dev # Only runs when code lands on the dev branch
+
+concurrency:
+  group: staging-deployment
+  cancel-in-progress: true
+
+jobs:
+  # 1. Double-check Quality (Safety Net)
+  # Even though PRs pass tests, we ensure the merged result is stable before deploying.
+  validate:
+    name: Verify Stability
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv python install 3.14
+      - run: uv sync --all-extras --dev
+      - run: uv run pytest
+
+  # 2. Build & Push Docker Image
+  build-and-push:
+    name: Build Docker Image
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # Needed for GitHub Container Registry (ghcr.io)
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          # Tags the image as 'dev' (stable URL for staging) and with the commit SHA (for rollback)
+          tags: |
+            ghcr.io/${{ github.repository }}:dev
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+  # 3. Trigger Deployment (CD)
+  deploy-staging:
+    name: Update Staging Environment
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment:
+      name: staging # Tracks deployments in GitHub UI
+      url: https://staging.myapp.com
+
+    steps:
+      - name: Deploy to Staging Server
+        # This part depends heavily on your infra (AWS, K8s, VPS).
+        # A senior dev often uses a simple SSH command or a webhook here.
+        run: |
+          echo "Triggering update on staging server..."
+          # Example: SSH into server and pull the new :dev image
+          # ssh user@staging-server "docker pull ghcr.io/${{ github.repository }}:dev && docker compose up -d"

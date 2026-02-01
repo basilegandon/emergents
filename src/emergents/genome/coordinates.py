@@ -21,6 +21,7 @@ class DefaultCoordinateValidator:
                     f"Base position {pos} out of bounds [0, {genome_length})"
                 )
         elif coord_sys == CoordinateSystem.GAP:
+            print(pos, genome_length)
             if pos < 0 or pos > genome_length:
                 raise IndexError(
                     f"Gap position {pos} out of bounds [0, {genome_length}]"

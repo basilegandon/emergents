@@ -35,58 +35,83 @@ class Inversion(Mutation):
             and self.end_pos != genome.length
         )
 
+    def _flatten_segments(self, node: Node | None) -> list[Segment]:
+        """Flatten tree to list of segments in order."""
+        segments: list[Segment] = []
+
+        def _flatten(n: Node | None) -> None:
+            if not n:
+                return
+            _flatten(n.left)
+            segments.append(n.segment)
+            _flatten(n.right)
+
+        _flatten(node)
+        return segments
+
+    def _invert_segments(self, segments: list[Segment]) -> list[Segment]:
+        """Reverse segments and invert promoter orientations."""
+        inverted: list[Segment] = []
+        for seg in reversed(segments):
+            if isinstance(seg, CodingSegment):
+                seg.promoter_direction = seg.promoter_direction.switch()
+            inverted.append(seg)
+        return inverted
+
+    def _merge_left_boundary(
+        self, left: Node | None, inverted_segments: list[Segment]
+    ) -> tuple[Node | None, list[Segment]]:
+        """Merge noncoding segments at left boundary."""
+        if not left or not inverted_segments:
+            return left, inverted_segments
+
+        rightmost = left
+        while rightmost.right:
+            rightmost = rightmost.right
+
+        if rightmost.segment.is_noncoding() and inverted_segments[0].is_noncoding():
+            merged_segment = rightmost.segment.clone_with_length(
+                rightmost.segment.length + inverted_segments[0].length
+            )
+            left = split_by_pos(left, self.start_pos - rightmost.segment.length)[0]
+            inverted_segments = inverted_segments[1:]
+            left = merge(left, Node(merged_segment))
+
+        return left, inverted_segments
+
+    def _merge_right_boundary(
+        self, right: Node | None, inverted_segments: list[Segment]
+    ) -> tuple[Node | None, list[Segment]]:
+        """Merge noncoding segments at right boundary."""
+        if not right or not inverted_segments:
+            return right, inverted_segments
+
+        leftmost = right
+        while leftmost.left:
+            leftmost = leftmost.left
+
+        if leftmost.segment.is_noncoding() and inverted_segments[-1].is_noncoding():
+            merged_segment = leftmost.segment.clone_with_length(
+                inverted_segments[-1].length + leftmost.segment.length
+            )
+            right = split_by_pos(right, leftmost.segment.length)[1]
+            inverted_segments = inverted_segments[:-1]
+            right = merge(Node(merged_segment), right)
+
+        return right, inverted_segments
+
     def apply(self, genome: Genome) -> None:
         """Apply the inversion to the genome, preserving order and merging noncoding segments at boundaries."""
         left, mid_right = split_by_pos(genome.root, self.start_pos)
         mid, right = split_by_pos(mid_right, self.end_pos - self.start_pos)
 
-        # Collect middle in order
-        segments: list[Segment] = []
+        # Collect and invert segments
+        segments = self._flatten_segments(mid)
+        inverted_segments = self._invert_segments(segments)
 
-        def _flatten(node: Node | None) -> None:
-            if not node:
-                return
-            _flatten(node.left)
-            segments.append(node.segment)
-            _flatten(node.right)
-
-        _flatten(mid)
-
-        # Reverse, invert promoter orientation
-        inverted_segments: list[Segment] = []
-        for seg in reversed(segments):
-            if isinstance(seg, CodingSegment):
-                seg.promoter_direction = seg.promoter_direction.switch()
-            inverted_segments.append(seg)
-
-        # Merge noncoding at left boundary
-        if left and inverted_segments:
-            # Find rightmost node in left
-            rightmost = left
-            while rightmost.right:
-                rightmost = rightmost.right
-            if rightmost.segment.is_noncoding() and inverted_segments[0].is_noncoding():
-                merged_segment = rightmost.segment.clone_with_length(
-                    rightmost.segment.length + inverted_segments[0].length
-                )
-                # Remove rightmost from left
-                left = split_by_pos(left, self.start_pos - rightmost.segment.length)[0]
-                inverted_segments = inverted_segments[1:]
-                left = merge(left, Node(merged_segment))
-
-        # Merge noncoding at right boundary
-        if right and inverted_segments:
-            leftmost = right
-            while leftmost.left:
-                leftmost = leftmost.left
-            if leftmost.segment.is_noncoding() and inverted_segments[-1].is_noncoding():
-                merged_segment = leftmost.segment.clone_with_length(
-                    inverted_segments[-1].length + leftmost.segment.length
-                )
-                # Remove leftmost from right
-                right = split_by_pos(right, leftmost.segment.length)[1]
-                inverted_segments = inverted_segments[:-1]
-                right = merge(Node(merged_segment), right)
+        # Merge noncoding at boundaries
+        left, inverted_segments = self._merge_left_boundary(left, inverted_segments)
+        right, inverted_segments = self._merge_right_boundary(right, inverted_segments)
 
         # Rebuild subtree from inverted list
         new_mid = None

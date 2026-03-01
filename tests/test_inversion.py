@@ -51,7 +51,6 @@ def test_inversion_merge_noncoding_left():
     i = Inversion(1, 5)
     i.apply(g)
     segs = g.to_list()
-    print(segs)
     # Should merge the two noncoding segments
     assert segs[0].length == 3
     assert segs[1].promoter_direction == PromoterDirection.FORWARD
@@ -70,7 +69,6 @@ def test_inversion_merge_noncoding_right():
     i = Inversion(4, 8)
     i.apply(g)
     segs = g.to_list()
-    print(segs)
     # Should merge the two noncoding segments
     assert any(s.length == 4 and s.is_noncoding() for s in segs)
 

@@ -44,7 +44,8 @@ fixable = ["ALL"]
 
 # Ignore specific rules that might be too noisy for your specific team style
 # E501: Line too long (Ruff's formatter handles this well usually, strict linting is annoying)
-ignore = ["E501"]
+# PT001: Ignore pytest fixture parentheses style - conflicts with editor auto-formatting
+ignore = ["E501", "PT001"]
 
 [tool.ruff.lint.isort]
 # Ensure imports are grouped correctly (Standard Lib -> Third Party -> Local)

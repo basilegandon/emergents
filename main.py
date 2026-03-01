@@ -1,20 +1,32 @@
 """
 Evolution simulation demonstrating population dynamics.
+
+This module serves as the application entry point, handling:
+- Configuration loading
+- Service orchestration via SimulationService
+- Resource cleanup
+- Error handling and logging
 """
 
 import sys
 
 from emergents.config import SimulationConfig
-from emergents.file_plotter import PlotData
 from emergents.logging_config import get_logger
-from emergents.population import Population, PopulationStats
+from emergents.simulation_service import SimulationService
 
 # Get logger using the centralized logging configuration
 logger = get_logger(__name__)
 
 
 def cleanup_resources() -> None:
-    """Clean up all system resources to ensure proper shutdown."""
+    """
+    Clean up all system resources to ensure proper shutdown.
+
+    This function handles cleanup of:
+    - Matplotlib resources
+    - Multiprocessing processes
+    - Garbage collection
+    """
     try:
         # Clean up matplotlib
         import matplotlib.pyplot as plt
@@ -44,12 +56,20 @@ def cleanup_resources() -> None:
         logger.warning("Error during resource cleanup: %s", e)
 
 
-def run() -> None:
-    """Run with configuration management."""
-    logger.debug("Starting evolution simulation run")
+def main() -> None:
+    """
+    Main entry point with comprehensive error handling.
 
+    Workflow:
+    1. Load or create simulation configuration
+    2. Create and run simulation service
+    3. Handle errors gracefully
+    4. Ensure complete cleanup
+    """
     try:
-        # Create configuration
+        logger.info("Starting evolution simulation")
+
+        # Create configuration with defaults
         config = SimulationConfig.create_default()
 
         logger.info("\n=== Evolution Simulation ===")
@@ -59,58 +79,11 @@ def run() -> None:
             config.evolution.num_generations,
         )
 
-        # Create and configure population
-        population = Population(
-            population_size=config.population.size,
-            mutation_rate=config.population.mutation_rate,
-            random_seed=config.population.random_seed,
-        )
+        # Create and run simulation service
+        simulation = SimulationService(config)
+        simulation.run()
 
-        # Initialize population with configured genome
-        population.initialize_population(
-            initial_genome_length=config.genome.initial_length,
-            nb_coding_segments=config.genome.num_coding_segments,
-            length_coding_segments=config.genome.coding_segment_length,
-            length_non_coding_segments=config.genome.non_coding_segment_length,
-            promoter_directions=config.genome.promoter_direction,
-            is_circular=config.genome.is_circular,
-        )
-
-        logger.debug("Initialized population with %d genomes", len(population.genomes))
-
-        # Run evolution with plotting if enabled
-        evolution_stats: list[PlotData] = population.evolve(
-            num_generations=config.evolution.num_generations,
-            report_every=config.evolution.report_interval,
-            plot_update_interval=(
-                config.evolution.report_interval
-                if config.evolution.enable_plotting
-                else None
-            ),
-            plot_filename=config.evolution.plot_filename,
-        )
-
-        # Display final results
-        if evolution_stats:
-            final_stats: PopulationStats = evolution_stats[-1].stats
-            logger.info("Evolution completed: %s", final_stats)
-
-            diversity = population.get_genome_diversity()
-            logger.info("Final diversity: %.3f", diversity["length_diversity"])
-
-    except Exception as e:
-        logger.error("Error in comprehensive demo: %s", e)
-        raise
-
-
-def main() -> None:
-    """Main entry point with comprehensive error handling."""
-    try:
-        logger.info("Starting evolution simulation")
-
-        run()
-
-        logger.info("Evolution simulation completed")
+        logger.info("Evolution simulation completed successfully")
 
     except KeyboardInterrupt:
         logger.info("Simulation interrupted by user")

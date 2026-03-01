@@ -86,22 +86,17 @@ def test_insert_at_gap_invalid():
 
 def test_delete_range_base_and_gap():
     g = Genome(make_segments([3, 2, 1]))
-    print(g)
     # Delete nothing
     g.delete_range(2, 2)
-    print(g)
     assert len(g) == 6
     # Delete first base
     g.delete_range(0, 1)
-    print(g)
     assert len(g) == 5
     # Delete last base
     g.delete_range(4, 5)
-    print(g)
     assert len(g) == 4
     # Delete all
     g.delete_range(0, 4)
-    print(g)
     assert len(g) == 0
 
 

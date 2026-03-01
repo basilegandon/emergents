@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "emergents"
 version = "0.1.0"
@@ -5,7 +9,9 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "matplotlib>=3.10.8",
     "rich>=14.3.1",
+    "tqdm>=4.67.3",
 ]
 
 [dependency-groups]
@@ -43,13 +49,19 @@ ignore = ["E501"]
 [tool.ruff.lint.isort]
 # Ensure imports are grouped correctly (Standard Lib -> Third Party -> Local)
 combine-as-imports = true
-known-first-party = ["emergents"] # CHANGE THIS to your package name
+known-first-party = ["emergents"]
 
 [tool.ruff.format]
 # Use double quotes for strings (standard)
 quote-style = "double"
 # Indent with spaces, not tabs
 indent-style = "space"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
 # Min version to ensure modern features

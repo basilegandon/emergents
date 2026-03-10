@@ -29,11 +29,11 @@ def test_find_segment_at_position_base():
     segs = make_segments([3, 2, 1])
     g = Genome(segs)
     # First base
-    seg, offset, start, end = g.find_segment_at_position(0, CoordinateSystem.BASE)
+    seg, offset, _, _ = g.find_segment_at_position(0, CoordinateSystem.BASE)
     assert seg is segs[0]
     assert offset == 0
     # Last base
-    seg, offset, start, end = g.find_segment_at_position(5, CoordinateSystem.BASE)
+    seg, offset, _, _ = g.find_segment_at_position(5, CoordinateSystem.BASE)
     assert seg is segs[2]
     assert offset == 0
     # Out of bounds
@@ -45,7 +45,7 @@ def test_find_segment_at_position_gap():
     segs = make_segments([3, 2, 1])
     g = Genome(segs)
     # At the end (gap)
-    seg, offset, start, end = g.find_segment_at_position(6, CoordinateSystem.GAP)
+    seg, _, start, end = g.find_segment_at_position(6, CoordinateSystem.GAP)
     assert seg is segs[2]
     assert start == 5
     assert end == 6

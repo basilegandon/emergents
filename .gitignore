@@ -210,3 +210,5 @@ __marimo__/
 # Results
 evolution_plots/
 evolution_progress.png
+
+.context/

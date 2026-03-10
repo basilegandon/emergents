@@ -97,27 +97,21 @@ class Population:
         if not 0 <= mutation_rate <= 1:
             raise ValueError("Mutation rate must be between 0 and 1")
 
-    def initialize_population(
+    def _validate_and_normalize_inputs(
         self,
         initial_genome_length: int,
         nb_coding_segments: int,
         length_coding_segments: int | list[int],
         length_non_coding_segments: int | list[int],
         promoter_directions: PromoterDirection | list[PromoterDirection],
-        is_circular: bool = False,
-        nature_of_extremities: Literal["C--C", "NC--NC", "C--NC"] = "NC--NC",
-    ) -> None:
+        is_circular: bool,
+        nature_of_extremities: Literal["C--C", "NC--NC", "C--NC"],
+    ) -> tuple[list[int], list[int], list[PromoterDirection], int]:
         """
-        Initialize the population with a random genome copied for all individuals.
+        Validate and normalize all input parameters.
 
-        Args:
-            initial_genome_length: Length of the initial genome
-            nb_coding_segments: Number of coding segments to include
-            length_coding_segments: Length(s) of coding segments (int or list of ints). If int, all coding segments will have this length. If list, it should have length equal to nb_coding_segments. Sum of all lengths should be less than initial_genome_length.
-            length_non_coding_segments: Length(s) of non-coding segments (int or list of ints). If int, all non-coding segments will have this length. If list, it should have length equal to the number of non-coding segments. Sum of all segment lengths should be less than initial_genome_length.
-            promoter_directions: Direction(s) of promoters for coding segments (PromoterDirection or list of PromoterDirection). If single value, all coding segments will have this direction. If list, it should have length equal to nb_coding_segments.
-            is_circular: Whether the genomes are circular
-            nature_of_extremities: Nature of linear genome ends ('C--C', 'NC--NC', 'C--NC')
+        Returns:
+            Tuple of (length_coding_segments, length_non_coding_segments, promoter_directions, nb_non_coding_segments)
         """
         if initial_genome_length <= 0:
             raise ValueError("Initial genome length must be positive")
@@ -131,7 +125,6 @@ class Population:
             if not is_circular and nature_of_extremities == "NC--NC":
                 nb_non_coding_segments = nb_coding_segments + 1
 
-        # Check that lengths are valid
         if nb_coding_segments > initial_genome_length:
             raise ValueError(
                 "Total number of coding segments exceeds initial genome length"
@@ -168,11 +161,33 @@ class Population:
                 "Sum of segment lengths is not equal to initial genome length"
             )
 
+        return (
+            length_coding_segments,
+            length_non_coding_segments,
+            promoter_directions,
+            nb_non_coding_segments,
+        )
+
+    def _build_segments(
+        self,
+        length_coding_segments: list[int],
+        length_non_coding_segments: list[int],
+        promoter_directions: list[PromoterDirection],
+        is_circular: bool,
+        nature_of_extremities: Literal["C--C", "NC--NC", "C--NC"],
+    ) -> list[Segment]:
+        """
+        Build the segment list for the genome.
+
+        Returns:
+            List of Segment objects
+        """
         segments: list[Segment] = []
 
         if not is_circular and nature_of_extremities == "NC--NC":
             segments.append(NonCodingSegment(length=length_non_coding_segments[0]))
             length_non_coding_segments = length_non_coding_segments[1:]
+
         for coding_length, promoter_direction, non_coding_length in zip(
             length_coding_segments,
             promoter_directions,
@@ -186,8 +201,51 @@ class Population:
             )
             segments.append(NonCodingSegment(length=non_coding_length))
 
-        genome = Genome(segments=segments, circular=is_circular)
+        return segments
 
+    def initialize_population(
+        self,
+        initial_genome_length: int,
+        nb_coding_segments: int,
+        length_coding_segments: int | list[int],
+        length_non_coding_segments: int | list[int],
+        promoter_directions: PromoterDirection | list[PromoterDirection],
+        is_circular: bool = False,
+        nature_of_extremities: Literal["C--C", "NC--NC", "C--NC"] = "NC--NC",
+    ) -> None:
+        """
+        Initialize the population with a random genome copied for all individuals.
+
+        Args:
+            initial_genome_length: Length of the initial genome
+            nb_coding_segments: Number of coding segments to include
+            length_coding_segments: Length(s) of coding segments (int or list of ints). If int, all coding segments will have this length. If list, it should have length equal to nb_coding_segments. Sum of all lengths should be less than initial_genome_length.
+            length_non_coding_segments: Length(s) of non-coding segments (int or list of ints). If int, all non-coding segments will have this length. If list, it should have length equal to the number of non-coding segments. Sum of all segment lengths should be less than initial_genome_length.
+            promoter_directions: Direction(s) of promoters for coding segments (PromoterDirection or list of PromoterDirection). If single value, all coding segments will have this direction. If list, it should have length equal to nb_coding_segments.
+            is_circular: Whether the genomes are circular
+            nature_of_extremities: Nature of linear genome ends ('C--C', 'NC--NC', 'C--NC')
+        """
+        length_coding_segments, length_non_coding_segments, promoter_directions, _ = (
+            self._validate_and_normalize_inputs(
+                initial_genome_length,
+                nb_coding_segments,
+                length_coding_segments,
+                length_non_coding_segments,
+                promoter_directions,
+                is_circular,
+                nature_of_extremities,
+            )
+        )
+
+        segments = self._build_segments(
+            length_coding_segments,
+            length_non_coding_segments,
+            promoter_directions,
+            is_circular,
+            nature_of_extremities,
+        )
+
+        genome = Genome(segments=segments, circular=is_circular)
         self.genomes = [copy.deepcopy(genome) for _ in range(self.population_size)]
 
     def update_mutation_config(self, config: MutationConfig) -> None:
@@ -286,6 +344,217 @@ class Population:
 
         self.genomes = new_genomes
 
+    def _initialize_plotter(
+        self, plot_update_interval: int | None, plot_filename: str
+    ) -> MultiprocessFilePlotter | None:
+        """
+        Initialize the plotter if plotting is enabled.
+
+        Args:
+            plot_update_interval: Update interval for plots
+            plot_filename: Filename for saved plots
+
+        Returns:
+            Initialized plotter or None
+        """
+        if not plot_update_interval:
+            return None
+
+        try:
+            plotter = MultiprocessFilePlotter(
+                filename=plot_filename,
+                save_history=True,
+                history_dir="evolution_plots",
+                title="Evolution Progress",
+                max_queue_size=100,
+            )
+            if plotter:
+                plotter.initialize()
+            return plotter
+        except Exception as e:  # pragma: no cover
+            logger.warning("Failed to initialize plotter: %s", e)
+            return None
+
+    def _setup_signal_handler(
+        self,
+        interrupted_flag: list[bool],
+        plotter: MultiprocessFilePlotter | None,
+        plot_data_list: list[PlotData],
+    ) -> Any:
+        """
+        Set up the signal handler for keyboard interrupts.
+
+        Args:
+            interrupted_flag: List containing interruption flag
+            plotter: The plotter instance
+            plot_data_list: Current plot data list
+
+        Returns:
+            Original signal handler
+        """
+
+        def signal_handler(
+            signum: int, frame: FrameType | None
+        ) -> None:  # pragma: no cover
+            interrupted_flag[0] = True
+            logger.info("Evolution interrupted at generation %d", len(plot_data_list))
+            if plotter:
+                try:
+                    plotter.update(plot_data_list)
+                except Exception as e:  # pragma: no cover
+                    logger.warning("Error updating plotter on interrupt: %s", e)
+
+        original_handler = signal.signal(
+            signal.SIGINT, signal_handler
+        )  # pragma: no cover
+        return original_handler
+
+    def _cleanup_resources(
+        self,
+        progress_bar: Any,
+        plotter: MultiprocessFilePlotter | None,
+        original_handler: Any,
+    ) -> None:
+        """
+        Clean up resources after evolution completes.
+
+        Args:
+            progress_bar: The progress bar to close
+            plotter: The plotter to close
+            original_handler: Original signal handler to restore
+        """
+        # Restore original signal handler first
+        try:
+            signal.signal(signal.SIGINT, original_handler)
+        except Exception as e:
+            logger.warning("Error restoring signal handler: %s", e)
+
+        logger.debug("Evolution run ended, finalizing...")
+
+        # Close progress bar explicitly
+        if progress_bar:
+            try:
+                logger.debug("Closing progress bar...")
+                progress_bar.close()
+                logger.debug("Progress bar closed")
+            except Exception as e:
+                logger.warning("Error closing progress bar: %s", e)
+
+        # Close plotter if it was created
+        if plotter:
+            try:
+                logger.debug("Closing plotter...")
+                plotter.close()
+                logger.debug("Plotter closed successfully")
+            except Exception as e:
+                logger.warning("Error closing plotter: %s", e)
+
+        # Force cleanup of all multiprocessing resources more aggressively
+        self._cleanup_multiprocessing()
+
+    def _terminate_child_process(self, process: Any, os: Any) -> None:
+        """
+        Terminate a single child process.
+
+        Args:
+            process: The process to terminate
+            os: OS module for kill operations
+        """
+        logger.debug("Terminating process %s (PID: %s)", process.name, process.pid)
+        process.terminate()
+        process.join(timeout=1.0)
+
+        if process.is_alive():
+            logger.debug("Force killing process %s", process.name)
+            try:
+                if hasattr(os, "kill") and process.pid:
+                    os.kill(process.pid, 9)
+            except Exception as e:
+                logger.warning("Failed to kill process %s: %s", process.name, e)
+
+    def _cleanup_multiprocessing(self) -> None:
+        """Clean up multiprocessing resources."""
+        logger.debug("Cleaning up multiprocessing resources...")
+        import gc
+        import multiprocessing as mp
+        import os
+        import time
+
+        try:
+            active_children = mp.active_children()
+            logger.debug("Found %d active child processes", len(active_children))
+
+            for p in active_children:
+                if p.is_alive():
+                    self._terminate_child_process(p, os)
+
+            # Force cleanup of any remaining resources
+            time.sleep(0.1)  # Small delay to allow cleanup
+            logger.debug("Multiprocessing cleanup completed")
+
+        except Exception as e:
+            logger.warning("Error cleaning up multiprocessing resources: %s", e)
+
+        # Additional cleanup for potential hanging resources
+        try:
+            gc.collect()  # Force garbage collection
+        except Exception as e:
+            logger.warning("Error during garbage collection: %s", e)
+
+    def _run_evolution_loop(
+        self,
+        num_generations: int,
+        report_every: int,
+        plot_update_interval: int | None,
+        plotter: MultiprocessFilePlotter | None,
+        interrupted_flag: list[bool],
+        plot_data_list: list[PlotData],
+    ) -> None:
+        """
+        Run the main evolution loop.
+
+        Args:
+            num_generations: Number of generations to evolve
+            report_every: Print stats every N generations
+            plot_update_interval: Update plots every N generations
+            plotter: The plotter instance
+            interrupted_flag: List containing interruption flag
+            plot_data_list: List to accumulate plot data
+        """
+        progress_bar = tqdm(
+            range(num_generations),
+            desc="Evolving Generations",
+            unit="gen",
+            leave=False,
+        )
+
+        try:
+            for gen in progress_bar:
+                # Check for interruption
+                if interrupted_flag[0]:  # pragma: no cover
+                    break
+
+                stats = self.evolve_one_generation()
+                plot_data_list.append(
+                    PlotData(stats=stats, genome_lengths=self.get_genome_lengths())
+                )
+
+                if report_every > 0 and gen % report_every == 0:
+                    logger.info("%s", stats)
+
+                # Update real-time plot if enabled
+                if plotter and plot_update_interval and gen % plot_update_interval == 0:
+                    plotter.update(plot_data_list)
+
+        except RuntimeError as e:  # pragma: no cover
+            logger.error("Evolution failed at generation %d: %s", self.generation, e)
+            raise
+        except Exception as e:  # pragma: no cover
+            logger.error("Unexpected error during evolution: %s", e)
+            raise
+        finally:
+            progress_bar.close()
+
     def evolve(
         self,
         num_generations: int,
@@ -328,163 +597,38 @@ class Population:
             logger.info("Press Ctrl+C to interrupt and save data")
         logger.info("-" * 60)
 
-        plot_data_list: list[PlotData] = []  # For enhanced plotting with genome lengths
+        plot_data_list: list[PlotData] = []
+        plotter = self._initialize_plotter(plot_update_interval, plot_filename)
+        interrupted_flag = [False]
 
-        # Set up plotting if enabled
-        plotter: MultiprocessFilePlotter | None = None
-        interrupted = False
+        original_handler = self._setup_signal_handler(
+            interrupted_flag, plotter, plot_data_list
+        )
 
-        if plot_update_interval:
-            try:
-                plotter = MultiprocessFilePlotter(
-                    filename=plot_filename,
-                    save_history=True,
-                    history_dir="evolution_plots",
-                    title="Evolution Progress",
-                    max_queue_size=100,
-                )
-
-                if plotter:
-                    plotter.initialize()
-            except Exception as e:  # pragma: no cover
-                logger.warning("Failed to initialize plotter: %s", e)
-                plotter = None
-
-        def signal_handler(
-            signum: int, frame: FrameType | None
-        ) -> None:  # pragma: no cover
-            nonlocal interrupted
-            interrupted = True
-            logger.info("Evolution interrupted at generation %d", len(plot_data_list))
-            if plotter:
-                try:
-                    # Only update the plotter with current data, don't close here
-                    # The finally block will handle closing properly
-                    plotter.update(plot_data_list)
-                except Exception as e:  # pragma: no cover
-                    logger.warning("Error updating plotter on interrupt: %s", e)
-
-        # Set up keyboard interrupt handler
-        original_handler = signal.signal(
-            signal.SIGINT, signal_handler
-        )  # pragma: no cover
-
-        progress_bar = None
         try:
-            progress_bar = tqdm(
-                range(num_generations),
-                desc="Evolving Generations",
-                unit="gen",
-                leave=False,
+            self._run_evolution_loop(
+                num_generations,
+                report_every,
+                plot_update_interval,
+                plotter,
+                interrupted_flag,
+                plot_data_list,
             )
-
-            for gen in progress_bar:
-                # Check for interruption
-                if interrupted:  # pragma: no cover
-                    break
-
-                stats = self.evolve_one_generation()
-                plot_data_list.append(
-                    PlotData(stats=stats, genome_lengths=self.get_genome_lengths())
-                )
-
-                if report_every > 0 and gen % report_every == 0:
-                    logger.info("%s", stats)
-
-                # Update real-time plot if enabled
-                if plotter and plot_update_interval and gen % plot_update_interval == 0:
-                    plotter.update(plot_data_list)
-
-        except RuntimeError as e:  # pragma: no cover
-            logger.error("Evolution failed at generation %d: %s", self.generation, e)
-            raise
-        except Exception as e:  # pragma: no cover
-            logger.error("Unexpected error during evolution: %s", e)
-            raise
         finally:  # pragma: no cover
-            # Restore original signal handler first
-            try:
-                signal.signal(signal.SIGINT, original_handler)
-            except Exception as e:
-                logger.warning("Error restoring signal handler: %s", e)
-
-            logger.debug("Evolution run ended, finalizing...")
-
-            # Close progress bar explicitly
-            if progress_bar:
-                try:
-                    logger.debug("Closing progress bar...")
-                    progress_bar.close()
-                    logger.debug("Progress bar closed")
-                except Exception as e:
-                    logger.warning("Error closing progress bar: %s", e)
-
-            # Close plotter if it was created
-            if plotter:
-                try:
-                    logger.debug("Closing plotter...")
-                    plotter.close()
-                    logger.debug("Plotter closed successfully")
-                except Exception as e:
-                    logger.warning("Error closing plotter: %s", e)
-
-            # Force cleanup of all multiprocessing resources more aggressively
-            logger.debug("Cleaning up multiprocessing resources...")
-            import multiprocessing as mp
-            import time
-
-            try:
-                active_children = mp.active_children()
-                logger.debug("Found %d active child processes", len(active_children))
-
-                for p in active_children:
-                    if p.is_alive():
-                        logger.debug("Terminating process %s (PID: %s)", p.name, p.pid)
-                        p.terminate()
-                        p.join(timeout=1.0)
-
-                        if p.is_alive():
-                            logger.debug("Force killing process %s", p.name)
-                            try:
-                                import os
-
-                                if hasattr(os, "kill") and p.pid:
-                                    os.kill(p.pid, 9)
-                            except Exception as e:
-                                logger.warning(
-                                    "Failed to kill process %s: %s", p.name, e
-                                )
-
-                # Force cleanup of any remaining resources
-                time.sleep(0.1)  # Small delay to allow cleanup
-                logger.debug("Multiprocessing cleanup completed")
-
-            except Exception as e:
-                logger.warning("Error cleaning up multiprocessing resources: %s", e)
-
-            # Additional cleanup for potential hanging resources
-            try:
-                import gc
-
-                gc.collect()  # Force garbage collection
-            except Exception as e:
-                logger.warning("Error during garbage collection: %s", e)
+            self._cleanup_resources(None, plotter, original_handler)
 
         logger.info("-" * 60)
-        if interrupted:  # pragma: no cover
+        if interrupted_flag[0]:  # pragma: no cover
             logger.info(
                 "Evolution interrupted! Data saved up to generation %d",
                 len(plot_data_list),
             )
-
-            # After cleanup is complete, re-raise KeyboardInterrupt so calling code knows it was interrupted
             if plot_data_list:
                 final_stats = plot_data_list[-1].stats
                 logger.info("Final: %s", final_stats)
             raise KeyboardInterrupt("Evolution interrupted by user")
-        else:
-            logger.info("Evolution complete!")
 
+        logger.info("Evolution complete!")
         if plot_data_list:
             final_stats = plot_data_list[-1].stats
             logger.info("Final: %s", final_stats)

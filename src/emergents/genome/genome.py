@@ -36,6 +36,13 @@ class Genome:
     def length(self) -> int:
         return self.root.sub_len if self.root else 0
 
+    def copy(self) -> "Genome":
+        """Create a deep copy of this genome (new tree and new segments)."""
+        new_genome = Genome(circular=self.circular)
+        if self.root:
+            new_genome.root = self.root.copy()
+        return new_genome
+
     def _validate_coord(self, pos: int, coord_sys: CoordinateSystem) -> None:
         """Validate coordinate based on system type."""
         self._validator.validate_position(pos, self.length, coord_sys)

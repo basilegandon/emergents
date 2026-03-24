@@ -591,7 +591,7 @@ class TestReplenishPopulation:
         pop = create_initialized_population(population_size=10)
         # Remove some genomes
         pop.genomes = pop.genomes[:5]
-        pop._replenish_population(5)
+        pop._replenish_population()
         assert len(pop.genomes) == 10
 
     def test_replenish_creates_new_genomes(self):
@@ -599,7 +599,7 @@ class TestReplenishPopulation:
         pop = create_initialized_population(population_size=5)
         original_genomes = copy.deepcopy(pop.genomes)
         pop.genomes = pop.genomes[:2]
-        pop._replenish_population(2)
+        pop._replenish_population()
         # New genomes should be different objects
         assert len(pop.genomes) == 5
         for i, genome in enumerate(pop.genomes):
@@ -609,7 +609,7 @@ class TestReplenishPopulation:
         """Test replenishment from single surviving genome."""
         pop = create_initialized_population(population_size=10)
         pop.genomes = pop.genomes[:1]
-        pop._replenish_population(1)
+        pop._replenish_population()
         assert len(pop.genomes) == 10
         # All should be derived from original survivor
         original_length = len(pop.genomes[0])
@@ -997,7 +997,7 @@ class TestComplexScenarios:
         # Reduce population
         pop.genomes = pop.genomes[:5]
         # Replenish
-        pop._replenish_population(5)
+        pop._replenish_population()
 
         # Should have same total population after replenishing
         assert len(pop.genomes) == 10

@@ -317,7 +317,7 @@ class Population:
         if survivors_count == 0:  # pragma: no cover
             raise RuntimeError("All genomes died! Population extinct.")
 
-        self._replenish_population(survivors_count)
+        self._replenish_population()
 
         # Update generation counter
         self.generation += 1
@@ -328,20 +328,17 @@ class Population:
 
         return stats
 
-    def _replenish_population(self, survivors_count: int) -> None:
+    def _replenish_population(self) -> None:
         """
         Replenish population to target size.
         We need to replenish from 0 to simulate luck: even a good genome can fail
         to reproduce. This is key to model the drift effect.
 
         """
-
         # Create new genomes by copying from survivors
-        new_genomes: list[Genome] = []
-        for _ in range(self.population_size):
-            parent = random.choice(self.genomes)
-            new_genomes.append(copy.deepcopy(parent))
-
+        new_genomes: list[Genome] = [
+            random.choice(self.genomes).copy() for _ in range(self.population_size)
+        ]
         self.genomes = new_genomes
 
     def _initialize_plotter(

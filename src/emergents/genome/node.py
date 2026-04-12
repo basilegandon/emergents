@@ -18,6 +18,15 @@ class Node:
     def __repr__(self) -> str:
         return f"Node({self.segment}, prio={self.priority}, sub_len={self.sub_len})"
 
+    def copy(self) -> "Node":
+        """Create a shallow copy of this node (same segment, new node object)."""
+        new_node = Node(self.segment)
+        new_node.priority = self.priority
+        new_node.left = self.left.copy() if self.left else None
+        new_node.right = self.right.copy() if self.right else None
+        new_node.sub_len = self.sub_len
+        return new_node
+
 
 def update_subtree_len(node: Node | None) -> None:
     """Update the subtree size information."""

@@ -212,3 +212,7 @@ evolution_plots/
 evolution_progress.png
 
 .context/
+
+_bmad/
+.github/
+*.prof

@@ -1154,7 +1154,7 @@ class TestComplexScenarios:
 
     def test_stats_survival_count_tracking(self):
         """Test that stats properly track survivor count after mutations."""
-        pop = Population(population_size=25, mutation_rate=0.4, random_seed=456)
+        pop = Population(population_size=25, mutation_rate=0.4, random_seed=42)
         pop.initialize_population(
             initial_genome_length=10,
             nb_coding_segments=2,
